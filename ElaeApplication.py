@@ -7,15 +7,16 @@ import datetime
 import ElaeModel
 
 class metricSlider:
-    def __init__(self, caller, root, text , r, c, scoreIndex):
+    def __init__(self, caller, root, text , r, c):
         self.caller = caller
         self.caller.userMetrics.append(self)
         self.scoreIndex = len(self.caller.userMetrics) - 1
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
         self.frame = customtkinter.CTkFrame(root)
         self.frame.grid(row = r, column = c, sticky = "nsew", padx = 5, pady = 5)
-        self.sliderLabel = customtkinter.CTkLabel(self.frame, text = f"{text}", font = self.smallFont)
-        self.sliderLabel.grid(row = 0, column = 0, sticky = "new", padx = 5, pady = 5)
+        self.frame.columnconfigure(1, weight= 1)
+        self.sliderLabel = customtkinter.CTkLabel(self.frame, text = f"{text}", font = self.smallFont, width = 30)
+        self.sliderLabel.grid(row = 0, column = 0, sticky = "ne", padx = 5, pady = 5)
         self.slider = customtkinter.CTkSlider(self.frame, from_=0, to=100, command = self.innerSliderEvent)
         self.slider.grid(row = 0, column = 1, sticky = "new", padx = 5, pady = 5)
         self.slider.set(0)
@@ -50,18 +51,9 @@ class ElaeApplication:
         self.chatTextbox.insert("end", f"{text}\n", justify)
         self.chatTextbox.configure(state = "disabled")
 
-    def gradeWrite(self, intext, outtext):
-
-        newInteraction = interactionInstance(self)
-        newInteraction.innerResponse = intext
-        newInteraction.outerResponse = outtext
-        newInteraction.id = self.interactionID
-        self.responseCol.append(newInteraction)
-
-
+    def gradeWrite(self):
         self.interactionIndex = self.interactionID
         self.interactionID += 1
-        self.interactionLabel.configure(text = f"Interaction {newInteraction.id}")
 
         for metric in self.userMetrics:
             metric.update()
@@ -84,10 +76,22 @@ class ElaeApplication:
         text = self.entry.get()
         self.entry.delete(0, "end")
         self.write(text, "right")
-        innerResponse, externalResponse = self.Elae.chatQuery(text)
+
+        newInteraction = interactionInstance(self)
+        newInteraction.innerContext = self.Elae.promptHistoryInner
+        newInteraction.outerContext = self.Elae.promptHistoryOuter
+        newInteraction.id = self.interactionID
+
+        innerResponse, outerResponse = self.Elae.chatQuery(text)
+
+        newInteraction.innerResponse = innerResponse
+        newInteraction.outerResponse = outerResponse
+        self.responseCol.append(newInteraction)
+        self.interactionLabel.configure(text = f"Interaction {newInteraction.id}")
+
         self.write(f"Internal: {innerResponse}", "left")
-        self.write(f"External: {externalResponse}", "left")
-        self.gradeWrite(innerResponse, externalResponse)
+        self.write(f"External: {outerResponse}", "left")
+        self.gradeWrite()
 
     def nextInteractionPress(self):
 
@@ -159,7 +163,7 @@ class ElaeApplication:
 
         #Root window
         self.root = customtkinter.CTk()
-        self.root.geometry("800x800")
+        self.root.geometry("1200x1000")
         self.root.title("Elae")
         # self.root.iconbitmap()
         self.root.grid_columnconfigure(0, weight= 1)
@@ -217,8 +221,9 @@ class ElaeApplication:
         self.innerResponse.grid(row = 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
         self.innerResponse.configure(state = "disabled")
 
-        self.innerOverallSlider = metricSlider(self, self.innerResponseFrame, "Overall", 2, 0, 0)
-        self.innerRelevanceSlider = metricSlider(self, self.innerResponseFrame, "Relevance", 3, 0, 1)
+        self.innerOverallSlider = metricSlider(self, self.innerResponseFrame, "Overall", 2, 0)
+        self.innerRelevanceSlider = metricSlider(self, self.innerResponseFrame, "Relevance", 3, 0)
+        self.innerHelpfulSlider = metricSlider(self, self.innerResponseFrame, "Helpful", 4, 0)
 
         self.outerResponseFrame = customtkinter.CTkFrame(self.gradingFrame)
         self.outerResponseFrame.columnconfigure(0, weight= 1)
@@ -229,9 +234,10 @@ class ElaeApplication:
         self.outerResponse.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.outerResponse.configure(state = "disabled")
 
-        self.outerOverallSlider = metricSlider(self, self.outerResponseFrame, "Overall", 2, 0, 2)
-        self.outerRelevanceSlider = metricSlider(self, self.outerResponseFrame, "Relevance", 3, 0, 3)
-        self.outerCoheranceSlider = metricSlider(self, self.outerResponseFrame, "Coherance", 4, 0, 4)
+        self.outerOverallSlider = metricSlider(self, self.outerResponseFrame, "Overall", 2, 0)
+        self.outerRelevanceSlider = metricSlider(self, self.outerResponseFrame, "Relevance", 3, 0)
+        self.outerCoheranceSlider = metricSlider(self, self.outerResponseFrame, "Coherance", 4, 0)
+        self.outerToneSlider = metricSlider(self, self.outerResponseFrame, "Tone Matching", 5, 0)
 
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
         self.buttonFrame.columnconfigure(0, weight= 1)
