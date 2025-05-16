@@ -37,6 +37,7 @@ class interactionInstance:
         self.caller = caller
         self.innerContext = ""
         self.outerContext = ""
+        self.userQuery = ""
         self.innerResponse = ""
         self.outerResponse = ""
         self.id = None
@@ -78,9 +79,10 @@ class ElaeApplication:
         self.write(text, "right")
 
         newInteraction = interactionInstance(self)
+        newInteraction.id = self.interactionID
         newInteraction.innerContext = self.Elae.promptHistoryInner
         newInteraction.outerContext = self.Elae.promptHistoryOuter
-        newInteraction.id = self.interactionID
+        newInteraction.userQuery = text
 
         innerResponse, outerResponse = self.Elae.chatQuery(text)
 
@@ -149,9 +151,27 @@ class ElaeApplication:
         timeStamp = datetime.datetime.now()
         timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
         timeStampString.replace("-", "_")
-        # file = open(f"./transcripts/{timeStampString}_Transcript.txt", "w+")
-        # file.write(self.Elae.promptHistory)
-        # file.close()
+        file = open(f"./transcripts/{timeStampString}_Transcript.json", "w+")
+        file.write("{")
+        for interaction in self.responseCol:
+            file.write(f"\n\"interaction{interaction.id}\" : ")
+            file.write("{")
+            file.write(f"\n\"id\" : {interaction.id},")
+            file.write(f"\n\"time\" : \"{interaction.time}\",")
+            tempString = interaction.innerContext.replace("\n", "\\n")
+            file.write(f"\n\"innerContext\" : \"{tempString}\",")
+            tempString = interaction.outerContext.replace("\n", "\\n")
+            file.write(f"\n\"outerContext\" : \"{tempString}\",")
+            file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
+            file.write(f"\n\"innerResponse\" : \"{interaction.innerResponse}\",")
+            file.write(f"\n\"outerResponse\" : \"{interaction.outerResponse}\",")
+            file.write(f"\n\"scoreVector\" : {interaction.scoreVector}")
+            if interaction == self.responseCol[-1]:
+                file.write("\n}")
+            else:
+                file.write("\n},")
+        file.write("\n}")
+        file.close()
         self.root.destroy()
         pass
 

@@ -6,20 +6,7 @@ import datetime
 
 class Elae:
     def chatQueryInner(self, input):
-        if self.promptHistoryInner == "":
-            self.promptHistoryInner = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
-[Example Conversation]
-Alex: Hi Elae how are you today?
-Elae: I am doing well today Alex! Ready for anything you might throw at me.
-Alex: Great! I would like to take a look into computer memory today.
-Elae: That sounds great! Are we planning to add something to my capabilities?
-
-[Current Conversation]
-Elae: Hi Alex, how can I help you?
-Alex: {input}
-Elae:"""
-        else:
-            self.promptHistoryInner += f"\nAlex: {input}\nElae: "
+        self.promptHistoryInner += f"\nAlex: {input}\nElae: "
 
         inputs = self.tokenizer(self.promptHistoryInner, return_tensors = "pt", padding = True, truncation = True).to(self.device)
 
@@ -55,21 +42,7 @@ Elae:"""
         return (f"{ai_response}")
 
     def chatQueryOuter(self, input):
-
-        if self.promptHistoryOuter == "":
-            self.promptHistoryOuter = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to mirror expert inner thoughts with only minor tweaks to align with your own emergent style and personality.
-[Example Conversation]
-Inner: I am doing great today!
-Outer: I am doing well today Alex!
-Inner: We left off talking about dynamic memory loading.
-Outer: I remember us talking about memory loading dynamically.
-
-
-[Current Conversation]
-Inner: {input}?
-Outer:"""
-        else:
-            self.promptHistoryOuter += f"\nInner: {input}\nOuter: "
+        self.promptHistoryOuter += f"\nInner: {input}\nOuter: "
 
         inputs = self.tokenizer(self.promptHistoryOuter, return_tensors = "pt", padding = True, truncation = True).to(self.device)
 
@@ -122,5 +95,23 @@ Outer:"""
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
         self.model.to(self.device)
         
-        self.promptHistoryInner = ""
-        self.promptHistoryOuter = ""
+        # self.promptHistoryInner = ""
+        self.promptHistoryInner = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
+[Example Conversation]
+Alex: Hi Elae how are you today?
+Elae: I am doing well today Alex! Ready for anything you might throw at me.
+Alex: Great! I would like to take a look into computer memory today.
+Elae: That sounds great! Are we planning to add something to my capabilities?
+
+[Current Conversation]
+Elae: Hi Alex, how can I help you?"""
+        # self.promptHistoryOuter = ""
+        self.promptHistoryOuter = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to mirror expert inner thoughts with only minor tweaks to align with your own emergent style and personality.
+[Example Conversation]
+Inner: I am doing great today!
+Outer: I am doing well today Alex!
+Inner: We left off talking about dynamic memory loading.
+Outer: I remember us talking about memory loading dynamically.
+
+
+[Current Conversation]"""
