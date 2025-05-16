@@ -9,7 +9,8 @@ import ElaeModel
 class metricSlider:
     def __init__(self, caller, root, text , r, c, scoreIndex):
         self.caller = caller
-        self.scoreIndex = scoreIndex
+        self.caller.userMetrics.append(self)
+        self.scoreIndex = len(self.caller.userMetrics) - 1
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
         self.frame = customtkinter.CTkFrame(root)
         self.frame.grid(row = r, column = c, sticky = "nsew", padx = 5, pady = 5)
@@ -30,21 +31,16 @@ class metricSlider:
         self.sliderValLabel.configure(text = f"{self.caller.responseCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
         pass
 
-    # def set(self, val):
-    #     self.slider.configure(command = None)
-    #     self.slider.set(val)
-    #     self.sliderValLabel.configure(text = f"{self.caller.responseCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
-    #     self.slider.configure(command = self.innerSliderEvent)
-
 class interactionInstance:
-    def __init__(self):
+    def __init__(self, caller):
+        self.caller = caller
         self.innerContext = ""
         self.outerContext = ""
         self.innerResponse = ""
         self.outerResponse = ""
         self.id = None
         self.time = datetime.datetime.now()
-        self.scoreVector = [0,0,0,0,0]
+        self.scoreVector = [0] * len(caller.userMetrics)
         pass
 
 class ElaeApplication:
@@ -56,7 +52,7 @@ class ElaeApplication:
 
     def gradeWrite(self, intext, outtext):
 
-        newInteraction = interactionInstance()
+        newInteraction = interactionInstance(self)
         newInteraction.innerResponse = intext
         newInteraction.outerResponse = outtext
         newInteraction.id = self.interactionID
@@ -67,11 +63,8 @@ class ElaeApplication:
         self.interactionID += 1
         self.interactionLabel.configure(text = f"Interaction {newInteraction.id}")
 
-        self.innerOverallSlider.update()
-        self.innerRelevanceSlider.update()
-        self.outerOverallSlider.update()
-        self.outerRelevanceSlider.update()
-        self.outerCoheranceSlider.update()
+        for metric in self.userMetrics:
+            metric.update()
 
         self.innerResponse.configure(state = "normal")
         self.innerResponse.delete("0.0", "end")
@@ -101,11 +94,8 @@ class ElaeApplication:
         if len(self.responseCol) > 1 and self.interactionIndex != len(self.responseCol) - 1:
             self.interactionIndex += 1
 
-        self.innerOverallSlider.update()
-        self.innerRelevanceSlider.update()
-        self.outerOverallSlider.update()
-        self.outerRelevanceSlider.update()
-        self.outerCoheranceSlider.update()
+        for metric in self.userMetrics:
+            metric.update()
 
         self.innerResponse.configure(state = "normal")
         self.innerResponse.delete("0.0", "end")
@@ -130,11 +120,8 @@ class ElaeApplication:
         if len(self.responseCol) > 1 and self.interactionIndex != 0:
                 self.interactionIndex -= 1
 
-        self.innerOverallSlider.update()
-        self.innerRelevanceSlider.update()
-        self.outerOverallSlider.update()
-        self.outerRelevanceSlider.update()
-        self.outerCoheranceSlider.update()
+        for metric in self.userMetrics:
+            metric.update()
 
         self.innerResponse.configure(state = "normal")
         self.innerResponse.delete("0.0", "end")
@@ -166,6 +153,7 @@ class ElaeApplication:
 
     def __init__(self):
         self.responseCol = []
+        self.userMetrics = []
         self.interactionID = 0
         self.interactionIndex = 0
 
