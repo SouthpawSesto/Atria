@@ -10,6 +10,8 @@ class metricSlider:
     def __init__(self, caller, root, text , r, c):
         self.caller = caller
         self.caller.userMetrics.append(self)
+        self.root = root
+        self.text = text
         self.scoreIndex = len(self.caller.userMetrics) - 1
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
         self.frame = customtkinter.CTkFrame(root)
@@ -165,11 +167,24 @@ class ElaeApplication:
             file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
             file.write(f"\n\"innerResponse\" : \"{interaction.innerResponse}\",")
             file.write(f"\n\"outerResponse\" : \"{interaction.outerResponse}\",")
-            file.write(f"\n\"scoreVector\" : {interaction.scoreVector}")
+            file.write(f"\n\"metrics\" : ")
+            file.write("{")
+            index = 0
+            for metric in self.userMetrics:
+                tempText = metric.text.replace(" ", "_")
+                inOutText = "inner" if index < self.innerOuterIndexThreshold else "outer"
+                if metric != self.userMetrics[-1]:
+                    file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]},")
+                else:
+                    file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]}")
+                index += 1
+            file.write("}")
+
             if interaction == self.responseCol[-1]:
                 file.write("\n}")
             else:
                 file.write("\n},")
+
         file.write("\n}")
         file.close()
         self.root.destroy()
@@ -178,6 +193,7 @@ class ElaeApplication:
     def __init__(self):
         self.responseCol = []
         self.userMetrics = []
+        self.innerOuterIndexThreshold = 3
         self.interactionID = 0
         self.interactionIndex = 0
 
@@ -256,7 +272,7 @@ class ElaeApplication:
 
         self.outerOverallSlider = metricSlider(self, self.outerResponseFrame, "Overall", 2, 0)
         self.outerRelevanceSlider = metricSlider(self, self.outerResponseFrame, "Relevance", 3, 0)
-        self.outerCoheranceSlider = metricSlider(self, self.outerResponseFrame, "Coherance", 4, 0)
+        self.outerCoheranceSlider = metricSlider(self, self.outerResponseFrame, "Coherence", 4, 0)
         self.outerToneSlider = metricSlider(self, self.outerResponseFrame, "Tone Matching", 5, 0)
 
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
