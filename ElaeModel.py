@@ -1,9 +1,7 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments, Trainer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 import datetime
 import json
-
-# torch.cuda.empty_cache()
 
 class atriaDataset:
     def __init__(self, tokenizer, transcriptFile):
@@ -27,6 +25,8 @@ class atriaDataset:
 
             sampleText = f"<alex> {userQuery}\n<elae> {modelResponse}"
             tokenizedData = self.tokenizer(sampleText, truncation = True, max_length = 512, padding = "max_length", return_tensors = "pt")
+            #ID's, Mask and Labels are all neccessary for huggingface's trainer module, weights are used in this
+            #implimentation for taking user input into consideration
             sample = {
                 "indput_ids" : tokenizedData["input_ids"],
                 "attention_mask" : tokenizedData["attention_mask"],
@@ -34,14 +34,18 @@ class atriaDataset:
                 "weights" : torch.tensor(weight)
             }
             self.sampleDict.append(sample)
-        
+
+    #Needed for huggingface compatibility 
     def __len__(self):
         return len(self.sampleDict)
     
+    #Needed for huggingface compatibility 
     def __getitem__(self, index):
         return self.sampleDict[index]
 
 class Elae:
+    #Adds user query to the prompt history and extrapolates an inner response
+    #Later will need to add expert routing and context building within each expert
     def chatQueryInner(self, input):
         self.promptHistoryInner += f"\n<alex> {input}\n<elae> "
 
@@ -78,6 +82,7 @@ class Elae:
         self.promptHistoryInner += f"{ai_response}" 
         return (f"{ai_response}")
 
+    #Adds inner dialogue to the prompt history and extrapolates an outer response
     def chatQueryOuter(self, input):
         self.promptHistoryOuter += f"\n<inner> {input}\n<outer> "
 
@@ -113,12 +118,19 @@ class Elae:
             ai_response = ai_response + "!"
         self.promptHistoryOuter += f"{ai_response}" 
         return (f"{ai_response}")
-    
+
+    #Main function called for when a user interacts with the model.
+    #First fetches / generates an inner dialogue then passes that response to
+    #the stylistic sync layer and returns both responses for documentation and grading 
     def chatQuery(self, input):
         innerThought = self.chatQueryInner(input)
         externalResponse = self.chatQueryOuter(innerThought)
         return innerThought, externalResponse
 
+    #Train function for model
+    #When passed a file to train on this function will train the current model
+    #on the passed dataset using the custom "Atria Dataset" class made to wrap
+    #around user data and pass into hugginface's trainer object
     def train(self, transcriptFile):
         trainingArgs = TrainingArguments(
             output_dir= "./gpt2-finetuned-large",
@@ -141,9 +153,7 @@ class Elae:
             model = self.model,
             args = trainingArgs,
             train_dataset = atriaDataset(self.tokenizer, transcriptFile),
-            # eval_dataset = tokenizedDataset["validation"],
             tokenizer = self.tokenizer,
-            # data_collator = dataCollator
         )
         trainer.train()
         trainer.save_model("./ElaeInner")

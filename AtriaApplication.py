@@ -261,6 +261,7 @@ class ElaeApplication:
         self.innerRelevanceSlider = metricSlider(self, self.innerResponseFrame, "Relevance", 3, 0)
         self.innerHelpfulSlider = metricSlider(self, self.innerResponseFrame, "Helpful", 4, 0)
 
+        #Outer Response Frame
         self.outerResponseFrame = customtkinter.CTkFrame(self.gradingFrame)
         self.outerResponseFrame.columnconfigure(0, weight= 1)
         self.outerResponseFrame.grid(row = 2, column = 0, sticky = "nsew", padx = 5, pady = 5)
@@ -275,6 +276,7 @@ class ElaeApplication:
         self.outerCoheranceSlider = metricSlider(self, self.outerResponseFrame, "Coherence", 4, 0)
         self.outerToneSlider = metricSlider(self, self.outerResponseFrame, "Tone Matching", 5, 0)
 
+        #Interaction buttons
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
         self.buttonFrame.columnconfigure(0, weight= 1)
         self.buttonFrame.columnconfigure(1, weight= 1)
@@ -289,7 +291,6 @@ class ElaeApplication:
 
         #Spinning up Elae
         self.Elae = ElaeModel.Elae()
-        # self.Elae = None
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.mainloop()
