@@ -1,8 +1,36 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments, Trainer
 import datetime
+import json
 
 # torch.cuda.empty_cache()
+
+class atriaDataset:
+
+    def __init__(self, transcriptFile):
+        self.sampleDict = []
+        rawData = json.load(transcriptFile)
+        for item in rawData:
+            userQuery = item.get("userQuery", "").strip()
+            modelResponse = item.get("innerResponse").strip()
+            metrics = item.get("metrics", {})
+
+            #Space for filtering based on metrics
+
+            sampleText = f"<alex> {userQuery}\n<elae> {modelResponse}"
+            tokenizedData = self.tokenizer(sampleText, truncation = True, max_length = 512, padding = "max_length", return_tensors = "pt")
+            sample = {
+                "indput_ids" : tokenizedData["input_ids"],
+                "attention_mask" : tokenizedData["attention_mask"],
+                "labels" : tokenizedData["input_ids"],
+            }
+            self.sampleDict.append(sample)
+        
+    def __len__(self):
+        return len(self.sampleDict)
+    
+    def __getitem__(self, index):
+        return self.sampleDict[index]
 
 class Elae:
     def chatQueryInner(self, input):
@@ -81,7 +109,12 @@ class Elae:
         innerThought = self.chatQueryInner(input)
         externalResponse = self.chatQueryOuter(innerThought)
         return innerThought, externalResponse
-        
+
+    def train(self):
+        self.trainer.train()
+        self.trainer.save_model("./ElaeInner")
+        self.tokenizer.save_pretrained("./ElaeInner")
+        pass
 
     def __init__(self):
         torch.cuda.empty_cache()
@@ -94,6 +127,32 @@ class Elae:
         self.model = AutoModelForCausalLM.from_pretrained(self.modelName)
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
         self.model.to(self.device)
+
+        self.trainingArgs = TrainingArguments(
+            output_dir= "./gpt2-finetuned-large",
+            evaluation_strategy= "epoch",
+            save_strategy= "epoch",
+            learning_rate= 5e-5,
+            per_device_train_batch_size = 1,
+            per_device_eval_batch_size = 1,
+            num_train_epochs = 1,
+            weight_decay = 0.01,
+            logging_dir = "./logs",
+            logging_steps = 200,
+            save_total_limit = 2,
+            push_to_hub = False,
+            fp16 = True,
+            gradient_accumulation_steps = 4
+        )
+
+        self.trainer = Trainer(
+            model = self.model,
+            args = self.trainingArgs,
+            train_dataset = tokenizedDataset["train"],
+            eval_dataset = tokenizedDataset["validation"],
+            tokenizer = self.tokenizer,
+            data_collator = dataCollator
+        )
         
         self.promptHistoryInner = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
 Example Conversation:
