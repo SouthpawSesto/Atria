@@ -6,16 +6,24 @@ import json
 # torch.cuda.empty_cache()
 
 class atriaDataset:
-
-    def __init__(self, transcriptFile):
+    def __init__(self, tokenizer, transcriptFile):
+        self.tokenizer = tokenizer
         self.sampleDict = []
         rawData = json.load(transcriptFile)
         for item in rawData:
             userQuery = item.get("userQuery", "").strip()
+            #Inner response training
             modelResponse = item.get("innerResponse").strip()
             metrics = item.get("metrics", {})
 
-            #Space for filtering based on metrics
+            #Take user metrics, normalize and scale to punishment vs reward on a 25 : 75 split out of 100
+            #Only uses overall inner score for now
+            weight = metrics.get("inner_Overall", 100)
+
+            if weight <= 25:
+                weight = (weight - 25) / 25
+            else:
+                weight = (weight - 25) / 75
 
             sampleText = f"<alex> {userQuery}\n<elae> {modelResponse}"
             tokenizedData = self.tokenizer(sampleText, truncation = True, max_length = 512, padding = "max_length", return_tensors = "pt")
@@ -23,6 +31,7 @@ class atriaDataset:
                 "indput_ids" : tokenizedData["input_ids"],
                 "attention_mask" : tokenizedData["attention_mask"],
                 "labels" : tokenizedData["input_ids"],
+                "weights" : torch.tensor(weight)
             }
             self.sampleDict.append(sample)
         
@@ -110,25 +119,8 @@ class Elae:
         externalResponse = self.chatQueryOuter(innerThought)
         return innerThought, externalResponse
 
-    def train(self):
-        self.trainer.train()
-        self.trainer.save_model("./ElaeInner")
-        self.tokenizer.save_pretrained("./ElaeInner")
-        pass
-
-    def __init__(self):
-        torch.cuda.empty_cache()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.modelName = "./gpt2FinetunedLarge"
-
-        self.tokenizer = AutoTokenizer.from_pretrained(self.modelName)
-        self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        self.model = AutoModelForCausalLM.from_pretrained(self.modelName)
-        self.model.config.pad_token_id = self.tokenizer.eos_token_id
-        self.model.to(self.device)
-
-        self.trainingArgs = TrainingArguments(
+    def train(self, transcriptFile):
+        trainingArgs = TrainingArguments(
             output_dir= "./gpt2-finetuned-large",
             evaluation_strategy= "epoch",
             save_strategy= "epoch",
@@ -145,15 +137,31 @@ class Elae:
             gradient_accumulation_steps = 4
         )
 
-        self.trainer = Trainer(
+        trainer = Trainer(
             model = self.model,
-            args = self.trainingArgs,
-            train_dataset = tokenizedDataset["train"],
-            eval_dataset = tokenizedDataset["validation"],
+            args = trainingArgs,
+            train_dataset = atriaDataset(self.tokenizer, transcriptFile),
+            # eval_dataset = tokenizedDataset["validation"],
             tokenizer = self.tokenizer,
-            data_collator = dataCollator
+            # data_collator = dataCollator
         )
-        
+        trainer.train()
+        trainer.save_model("./ElaeInner")
+        self.tokenizer.save_pretrained("./ElaeInner")
+        pass
+
+    def __init__(self):
+        torch.cuda.empty_cache()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.modelName = "./gpt2FinetunedLarge"
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.modelName)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        self.model = AutoModelForCausalLM.from_pretrained(self.modelName)
+        self.model.config.pad_token_id = self.tokenizer.eos_token_id
+        self.model.to(self.device)
+
         self.promptHistoryInner = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
 Example Conversation:
 <alex> Hi Elae how are you today?
