@@ -157,8 +157,12 @@ class Elae:
             tokenizer = self.tokenizer,
         )
         trainer.train()
-        trainer.save_model("./ElaeInner")
-        self.tokenizer.save_pretrained("./ElaeInner")
+
+        timeStamp = datetime.datetime.now()
+        timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
+        timeStampString.replace("-", "_")
+        trainer.save_model(f"{self.modelName}_{timeStampString}")
+        self.tokenizer.save_pretrained(f"{self.modelName}_{timeStampString}")
         pass
 
     def __init__(self):

@@ -191,6 +191,11 @@ class ElaeApplication:
         self.root.destroy()
         pass
 
+    #Save and train the model. User selects data to use in training set.
+    def saveAndTrain(self):
+        customtkinter.filedialog.askopenfilename()
+        pass
+
     def __init__(self):
         self.responseCol = []
         self.userMetrics = []
@@ -211,9 +216,11 @@ class ElaeApplication:
 
         self.fileMenu = self.menu.add_cascade("File")
         self.fileDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.fileMenu)
-        self.fileDropdown.add_option("Open")
-        self.fileDropdown.add_option("Save")
-        self.fileDropdown.add_option("Save As...")
+        self.fileDropdown.add_option("New Model")
+        self.fileDropdown.add_option("Load Model")
+        self.fileDropdown.add_option("Clone Model")
+        self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
+        # self.fileDropdown.add_option("Save Application State")
 
         #Mainframe for whole window
         self.mainFrame = customtkinter.CTkFrame(self.root)
