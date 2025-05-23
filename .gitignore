@@ -6,6 +6,7 @@ elae-env/
 
 transcripts/
 gpt2FinetunedLarge/
+elaeProto0/
 
 *.log
 *.tmp

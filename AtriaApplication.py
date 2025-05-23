@@ -187,6 +187,7 @@ class ElaeApplication:
 
         file.write("\n}")
         file.close()
+
         self.root.destroy()
         pass
 
@@ -291,6 +292,14 @@ class ElaeApplication:
 
         #Spinning up Elae
         self.Elae = ElaeModel.Elae()
+        # print(f"Adding Tokens...")
+        # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": ["__USER__", "__EXPERT__", "__OUTPUT__"]})
+        # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__EXPERT__"})
+        # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__OUTPUT__"})
+        # self.Elae.model.resize_token_embeddings(len(self.Elae.tokenizer))
+        # print(f"Saving Model...")
+        # self.Elae.tokenizer.save_pretrained("./elaeProto0")
+        # self.Elae.model.save_pretrained("./elaeProto0")
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.mainloop()
