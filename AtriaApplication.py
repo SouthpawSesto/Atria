@@ -206,7 +206,7 @@ class ElaeApplication:
         #Root window
         self.root = customtkinter.CTk()
         self.root.geometry("1200x1000")
-        self.root.title("Elae")
+        self.root.title("Atria")
         # self.root.iconbitmap()
         self.root.grid_columnconfigure(0, weight= 1)
         self.root.grid_rowconfigure(0, weight= 1)
