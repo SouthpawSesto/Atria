@@ -47,8 +47,12 @@ class interactionInstance:
         pass
 
 class modelWrapper:
+    def addMetricButtonPress(self):
+        self.addMetric("Test")
+    
     def addMetric(self, name):
         self.metricCol.append(metricSlider(self, self.responseFrame, f"{name}", len(self.metricCol) + 2, 0))
+        self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
 
     def write(self, text):
         self.responseTextBox.configure(state = "normal")
@@ -75,8 +79,6 @@ class modelWrapper:
 
         newInteraction.response = response
         self.context = self.context + f"__USER__:{query}\n" + f"__EXPERT__:{response}\n"
-        print(self.context)
-        # self.context = self.context + f"__USER__:{query}\n" + f"__EXPERT__:{response}\n"
         self.write(response)
 
         self.interactionCol.append(newInteraction)
@@ -84,17 +86,33 @@ class modelWrapper:
         self.interactionID += 1
         return response
 
-    def __init__(self, name, root, modelDir, row, column):
+    def __init__(self, caller, name, modelDir):
         self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
 
-        self.gradingFrame = root
+        self.parentFrame = caller.modelFrame
         self.name = name
         self.modelDir = modelDir
         self.metricCol = []
         self.interactionCol = []
         self.interactionID = 0
         self.interactionIndex = 0
+
+        self.responseFrame = customtkinter.CTkFrame(self.parentFrame)
+        self.responseFrame.columnconfigure(0, weight= 1)
+        self.responseFrame.grid(row = len(caller.modelCol) + 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        self.Label = customtkinter.CTkLabel(self.responseFrame, text = f"{self.name}", font = self.smallFont)
+        self.Label.grid(row = 0, column = 0, sticky = "nw", padx = 5, pady = 5)
+        self.responseTextBox = customtkinter.CTkTextbox(self.responseFrame, height = 100, font = self.smallFont, wrap = "word")
+        self.responseTextBox.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        self.responseTextBox.configure(state = "disabled")
+        self.addMetricButton = customtkinter.CTkButton(self.responseFrame, text="+", command=self.addMetricButtonPress, font = self.font)
+        self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
+
+        self.addMetric("Overall")
+
+        self.model =  GenericModel.Model(self.modelDir)
+        self.model.model.to("cpu")
         self.context = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
 Example Conversation:
 time: {datetime.datetime.now()}
@@ -106,21 +124,8 @@ __EXPERT__: That sounds great! Are we planning to add something to my capabiliti
 
 Current Conversation:
 __EXPERT__: Hi Alex, how can I help you?\n"""
-
-
-
-        self.responseFrame = customtkinter.CTkFrame(self.gradingFrame)
-        self.responseFrame.columnconfigure(0, weight= 1)
-        self.responseFrame.grid(row = row, column = column, sticky = "nsew", padx = 5, pady = 5)
-        self.Label = customtkinter.CTkLabel(self.responseFrame, text = f"{self.name}", font = self.smallFont)
-        self.Label.grid(row = 0, column = 0, columnspan = 2, sticky = "nw", padx = 5, pady = 5)
-        self.responseTextBox = customtkinter.CTkTextbox(self.responseFrame, height = 100, font = self.smallFont, wrap = "word")
-        self.responseTextBox.grid(row = 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
-        self.responseTextBox.configure(state = "disabled")
-        self.addMetric("Overall")
-
-        self.model =  GenericModel.Model(self.modelDir)
-        self.model.model.to("cpu")
+        
+        caller.modelCol.append(self)
         pass
 
 class ElaeApplication:
@@ -150,6 +155,12 @@ class ElaeApplication:
         self.write(text, "right")
 
         self.userQuery(text)
+
+        for model in self.modelCol:
+            model.interactionIndex = self.interactionIndex
+            model.update()
+
+        self.interactionLabel.configure(text = f"Interaction {self.interactionIndex}")
 
     def nextInteractionPress(self):
 
@@ -286,28 +297,31 @@ class ElaeApplication:
         self.gradingFrame = customtkinter.CTkFrame(self.mainFrame)
         self.gradingFrame.grid(row=0, column = 2, rowspan = 2, sticky = "nsew", padx = 5, pady = 5)
         self.gradingFrame.columnconfigure(0, weight= 1)
+        self.gradingFrame.rowconfigure(1, weight= 1)
 
         self.interactionLabel = customtkinter.CTkLabel(self.gradingFrame, text = "Interact with Elae to see information here!", font = self.font)
         self.interactionLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
 
+        self.modelFrame = customtkinter.CTkScrollableFrame(self.gradingFrame)
+        self.modelFrame.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        self.modelFrame.columnconfigure(0, weight= 1)
+
         #Inner Response Model
-        self.innerResponseWrapper = modelWrapper("Inner Response", self.gradingFrame, "./elaeProto0", 1, 0)
+        self.innerResponseWrapper = modelWrapper(self, "Inner Response", "./elaeProto0")
         self.innerResponseWrapper.addMetric("Relevance")
         self.innerResponseWrapper.addMetric("Helpful")
-        self.modelCol.append(self.innerResponseWrapper)
 
         #Outer Response Model
-        self.outerResponseWrapper = modelWrapper("Outer Response", self.gradingFrame, "./elaeProto0", 2, 0)
+        self.outerResponseWrapper = modelWrapper(self, "Outer Response", "./elaeProto0")
         self.outerResponseWrapper.addMetric("Relevance")
         self.outerResponseWrapper.addMetric("Coherence")
         self.outerResponseWrapper.addMetric("Tone")
-        self.modelCol.append(self.outerResponseWrapper)
 
         #Interaction buttons
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
         self.buttonFrame.columnconfigure(0, weight= 1)
         self.buttonFrame.columnconfigure(1, weight= 1)
-        self.buttonFrame.grid(row = 3, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        self.buttonFrame.grid(row = 2, column = 0, sticky = "sew", padx = 5, pady = 5)
         self.backInteractionButton = customtkinter.CTkButton(self.buttonFrame, text = "Back", command = self.backInteractionPress, font = self.smallFont)
         self.backInteractionButton.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.backInteractionButton.configure(state = "disabled")
