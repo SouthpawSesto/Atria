@@ -6,6 +6,7 @@ import datetime
 
 import ElaeModel
 import GenericModel
+import ModelEditWindow
 
 class metricSlider:
     def __init__(self, caller, text):
@@ -47,10 +48,13 @@ class interactionInstance:
         pass
 
 class modelWrapper:
-    def addMetricButtonPress(self):
-        self.addMetric("Test")
+    # def addMetricButtonPress(self):
+    #     self.addMetric("Test")
     
-    def addMetric(self, name):
+    def addMetric(self, name = None):
+        if name == None:
+            name = ModelEditWindow.metricEditWindow().onClose()[0]
+
         metricSlider(self, f"{name}")
         self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
 
@@ -106,7 +110,7 @@ class modelWrapper:
         self.responseTextBox = customtkinter.CTkTextbox(self.responseFrame, height = 100, font = self.smallFont, wrap = "word")
         self.responseTextBox.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.responseTextBox.configure(state = "disabled")
-        self.addMetricButton = customtkinter.CTkButton(self.responseFrame, text="+", command=self.addMetricButtonPress, font = self.font)
+        self.addMetricButton = customtkinter.CTkButton(self.responseFrame, text="+", command=self.addMetric, font = self.font)
         self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
 
         self.addMetric("Overall")
@@ -193,7 +197,14 @@ class ElaeApplication:
             self.backInteractionButton.configure(state = "disabled")
         
         self.nextInteractionButton.configure(state = "normal")
-        
+
+    def addModelButtonPress(self):
+        editArgs = ModelEditWindow.modelEditWindow().onClose()
+        print(editArgs)
+        modelWrapper(self, f"{editArgs[0]}", editArgs[1])
+        self.addModelButton.grid(column = 0, row = len(self.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
+        pass
+
     #Closing hook
     def onClosing(self):
         timeStamp = datetime.datetime.now()
@@ -310,16 +321,9 @@ class ElaeApplication:
         self.modelFrame.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.modelFrame.columnconfigure(0, weight= 1)
 
-        #Inner Response Model
-        self.innerResponseWrapper = modelWrapper(self, "Inner Response", "./elaeProto0")
-        self.innerResponseWrapper.addMetric("Relevance")
-        self.innerResponseWrapper.addMetric("Helpful")
-
-        #Outer Response Model
-        self.outerResponseWrapper = modelWrapper(self, "Outer Response", "./elaeProto0")
-        self.outerResponseWrapper.addMetric("Relevance")
-        self.outerResponseWrapper.addMetric("Coherence")
-        self.outerResponseWrapper.addMetric("Tone")
+        #Add model button
+        self.addModelButton = customtkinter.CTkButton(self.modelFrame, text="Add Model", command=self.addModelButtonPress, font = self.font)
+        self.addModelButton.grid(column = 0, row = len(self.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
 
         #Interaction buttons
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
@@ -334,14 +338,10 @@ class ElaeApplication:
         self.nextInteractionButton.configure(state = "disabled")
 
 
-        #Spinning up Elae
-        # self.Elae = GenericModel.Model()
-        # print(f"Adding Tokens...")
-        # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": ["__USER__", "__EXPERT__", "__OUTPUT__"]})
-        # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__EXPERT__"})
-        # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__OUTPUT__"})
+        # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": ["__USER__", "__EXPERT__", "__OUTPUT__"]})
+        # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__EXPERT__"})
+        # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__OUTPUT__"})
         # self.Elae.model.resize_token_embeddings(len(self.Elae.tokenizer))
-        # print(f"Saving Model...")
         # self.Elae.tokenizer.save_pretrained("./elaeProto0")
         # self.Elae.model.save_pretrained("./elaeProto0")
 
