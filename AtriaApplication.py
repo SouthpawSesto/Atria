@@ -9,10 +9,10 @@ import ElaeModel
 class metricSlider:
     def __init__(self, caller, root, text , r, c):
         self.caller = caller
-        self.caller.userMetrics.append(self)
+        self.caller.metricCol.append(self)
         self.root = root
         self.text = text
-        self.scoreIndex = len(self.caller.userMetrics) - 1
+        self.scoreIndex = len(self.caller.metricCol) - 1
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
         self.frame = customtkinter.CTkFrame(root)
         self.frame.grid(row = r, column = c, sticky = "nsew", padx = 5, pady = 5)
@@ -44,7 +44,34 @@ class interactionInstance:
         self.outerResponse = ""
         self.id = None
         self.time = datetime.datetime.now()
-        self.scoreVector = [0] * len(caller.userMetrics)
+        self.scoreVector = [0] * len(caller.metricCol)
+        pass
+
+class modelWrapper:
+    def write(self, text):
+        self.responseTextBox.configure(state = "normal")
+        self.responseTextBox.delete("0.0", "end")
+        self.responseTextBox.insert("end", f"{text}\n")
+        self.responseTextBox.configure(state = "disabled")
+        pass
+
+    def __init__(self, root, row, column):
+        self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
+        self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
+
+        self.gradingFrame = root
+        self.responseName = ""
+        self.modelName = ""
+        self.metricCol = []
+
+        self.responseFrame = customtkinter.CTkFrame(self.gradingFrame)
+        self.responseFrame.columnconfigure(0, weight= 1)
+        self.responseFrame.grid(row = row, column = column, sticky = "nsew", padx = 5, pady = 5)
+        self.Label = customtkinter.CTkLabel(self.responseFrame, text = f"{self.responseName}", font = self.smallFont)
+        self.Label.grid(row = 0, column = 0, columnspan = 2, sticky = "nw", padx = 5, pady = 5)
+        self.responseTextBox = customtkinter.CTkTextbox(self.responseFrame, height = 100, font = self.smallFont, wrap = "word")
+        self.responseTextBox.grid(row = 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
+        self.responseTextBox.configure(state = "disabled")
         pass
 
 class ElaeApplication:
@@ -58,18 +85,11 @@ class ElaeApplication:
         self.interactionIndex = self.interactionID
         self.interactionID += 1
 
-        for metric in self.userMetrics:
+        for metric in self.metricCol:
             metric.update()
 
-        self.innerResponse.configure(state = "normal")
-        self.innerResponse.delete("0.0", "end")
-        self.innerResponse.insert("end", f"{self.responseCol[-1].innerResponse}\n")
-        self.innerResponse.configure(state = "disabled")
-
-        self.outerResponse.configure(state = "normal")
-        self.outerResponse.delete("0.0", "end")
-        self.outerResponse.insert("end", f"{self.responseCol[-1].outerResponse}\n")
-        self.outerResponse.configure(state = "disabled")
+        self.innerResponseWrapper.write(f"{self.responseCol[-1].innerResponse}\n")
+        self.outerResponseWrapper.write(f"{self.responseCol[-1].outerResponse}\n")
 
         if len(self.responseCol) > 1:
             self.backInteractionButton.configure(state = "normal")
@@ -102,19 +122,11 @@ class ElaeApplication:
         if len(self.responseCol) > 1 and self.interactionIndex != len(self.responseCol) - 1:
             self.interactionIndex += 1
 
-        for metric in self.userMetrics:
+        for metric in self.metricCol:
             metric.update()
 
-        self.innerResponse.configure(state = "normal")
-        self.innerResponse.delete("0.0", "end")
-        self.innerResponse.insert("end", f"{self.responseCol[self.interactionIndex].innerResponse}\n")
-        self.innerResponse.configure(state = "disabled")
-
-
-        self.outerResponse.configure(state = "normal")
-        self.outerResponse.delete("0.0", "end")
-        self.outerResponse.insert("end", f"{self.responseCol[self.interactionIndex].outerResponse}\n")
-        self.outerResponse.configure(state = "disabled")
+        self.innerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].innerResponse}\n")
+        self.outerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].outerResponse}\n")
 
         self.interactionLabel.configure(text = f"Interaction {self.responseCol[self.interactionIndex].id}")
 
@@ -128,18 +140,11 @@ class ElaeApplication:
         if len(self.responseCol) > 1 and self.interactionIndex != 0:
                 self.interactionIndex -= 1
 
-        for metric in self.userMetrics:
+        for metric in self.metricCol:
             metric.update()
 
-        self.innerResponse.configure(state = "normal")
-        self.innerResponse.delete("0.0", "end")
-        self.innerResponse.insert("end", f"{self.responseCol[self.interactionIndex].innerResponse}\n")
-        self.innerResponse.configure(state = "disabled")
-
-        self.outerResponse.configure(state = "normal")
-        self.outerResponse.delete("0.0", "end")
-        self.outerResponse.insert("end", f"{self.responseCol[self.interactionIndex].outerResponse}\n")
-        self.outerResponse.configure(state = "disabled")
+        self.outerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].outerResponse}\n")
+        self.innerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].innerResponse}\n")
 
         self.interactionLabel.configure(text = f"Interaction {self.responseCol[self.interactionIndex].id}")
 
@@ -170,10 +175,10 @@ class ElaeApplication:
             file.write(f"\n\"metrics\" : ")
             file.write("{")
             index = 0
-            for metric in self.userMetrics:
+            for metric in self.metricCol:
                 tempText = metric.text.replace(" ", "_")
                 inOutText = "inner" if index < self.innerOuterIndexThreshold else "outer"
-                if metric != self.userMetrics[-1]:
+                if metric != self.metricCol[-1]:
                     file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]},")
                 else:
                     file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]}")
@@ -198,7 +203,7 @@ class ElaeApplication:
 
     def __init__(self):
         self.responseCol = []
-        self.userMetrics = []
+        self.metricCol = []
         self.innerOuterIndexThreshold = 3
         self.interactionID = 0
         self.interactionIndex = 0
@@ -256,33 +261,26 @@ class ElaeApplication:
         self.interactionLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
 
         #Inner Response Frame
-        self.innerResponseFrame = customtkinter.CTkFrame(self.gradingFrame)
-        self.innerResponseFrame.columnconfigure(0, weight= 1)
-        self.innerResponseFrame.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
-        self.innerLabel = customtkinter.CTkLabel(self.innerResponseFrame, text = "Inner Response", font = self.smallFont)
-        self.innerLabel.grid(row = 0, column = 0, columnspan = 2, sticky = "nw", padx = 5, pady = 5)
-        self.innerResponse = customtkinter.CTkTextbox(self.innerResponseFrame, height = 100, font = self.smallFont, wrap = "word")
-        self.innerResponse.grid(row = 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
-        self.innerResponse.configure(state = "disabled")
+        self.innerResponseWrapper = modelWrapper(self.gradingFrame, 1, 0)
 
-        self.innerOverallSlider = metricSlider(self, self.innerResponseFrame, "Overall", 2, 0)
-        self.innerRelevanceSlider = metricSlider(self, self.innerResponseFrame, "Relevance", 3, 0)
-        self.innerHelpfulSlider = metricSlider(self, self.innerResponseFrame, "Helpful", 4, 0)
+        self.innerOverallSlider = metricSlider(self, self.innerResponseWrapper.responseFrame, "Overall", 2, 0)
+        self.innerResponseWrapper.metricCol.append(self.innerOverallSlider)
+        self.innerRelevanceSlider = metricSlider(self, self.innerResponseWrapper.responseFrame, "Relevance", 3, 0)
+        self.innerResponseWrapper.metricCol.append(self.innerRelevanceSlider)
+        self.innerHelpfulSlider = metricSlider(self, self.innerResponseWrapper.responseFrame, "Helpful", 4, 0)
+        self.innerResponseWrapper.metricCol.append(self.innerHelpfulSlider)
 
         #Outer Response Frame
-        self.outerResponseFrame = customtkinter.CTkFrame(self.gradingFrame)
-        self.outerResponseFrame.columnconfigure(0, weight= 1)
-        self.outerResponseFrame.grid(row = 2, column = 0, sticky = "nsew", padx = 5, pady = 5)
-        self.outerLabel = customtkinter.CTkLabel(self.outerResponseFrame, text = "External Response", font = self.smallFont)
-        self.outerLabel.grid(row = 0, column = 0, sticky = "nw", padx = 5, pady = 5)
-        self.outerResponse = customtkinter.CTkTextbox(self.outerResponseFrame, height = 100, font = self.smallFont, wrap = "word")
-        self.outerResponse.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
-        self.outerResponse.configure(state = "disabled")
+        self.outerResponseWrapper = modelWrapper(self.gradingFrame, 2, 0)
 
-        self.outerOverallSlider = metricSlider(self, self.outerResponseFrame, "Overall", 2, 0)
-        self.outerRelevanceSlider = metricSlider(self, self.outerResponseFrame, "Relevance", 3, 0)
-        self.outerCoheranceSlider = metricSlider(self, self.outerResponseFrame, "Coherence", 4, 0)
-        self.outerToneSlider = metricSlider(self, self.outerResponseFrame, "Tone Matching", 5, 0)
+        self.outerOverallSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Overall", 2, 0)
+        self.outerResponseWrapper.metricCol.append(self.outerOverallSlider)
+        self.outerRelevanceSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Relevance", 3, 0)
+        self.outerResponseWrapper.metricCol.append(self.outerRelevanceSlider)
+        self.outerCoheranceSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Coherence", 4, 0)
+        self.outerResponseWrapper.metricCol.append(self.outerCoheranceSlider)
+        self.outerToneSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Tone Matching", 5, 0)
+        self.outerResponseWrapper.metricCol.append(self.outerToneSlider)
 
         #Interaction buttons
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
