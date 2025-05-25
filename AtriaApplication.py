@@ -5,6 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import datetime
 
 import ElaeModel
+import GenericModel
 
 class metricSlider:
     def __init__(self, caller, root, text , r, c):
@@ -26,28 +27,29 @@ class metricSlider:
         self.sliderValLabel.grid(row = 0, column = 2, sticky = "new", padx = 5, pady = 5)
 
     def innerSliderEvent(self, * args):
-        self.caller.responseCol[self.caller.interactionIndex].scoreVector[self.scoreIndex] = round(args[0], 0)
-        self.sliderValLabel.configure(text = f"{self.caller.responseCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
+        self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex] = round(args[0], 0)
+        self.sliderValLabel.configure(text = f"{self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
 
     def update(self):
-        self.slider.set(self.caller.responseCol[self.caller.interactionIndex].scoreVector[self.scoreIndex])
-        self.sliderValLabel.configure(text = f"{self.caller.responseCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
+        self.slider.set(self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex])
+        self.sliderValLabel.configure(text = f"{self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
         pass
 
 class interactionInstance:
     def __init__(self, caller):
         self.caller = caller
-        self.innerContext = ""
-        self.outerContext = ""
+        self.context = ""
         self.userQuery = ""
-        self.innerResponse = ""
-        self.outerResponse = ""
+        self.response = ""
         self.id = None
         self.time = datetime.datetime.now()
         self.scoreVector = [0] * len(caller.metricCol)
         pass
 
 class modelWrapper:
+    def addMetric(self, name):
+        self.metricCol.append(metricSlider(self, self.responseFrame, f"{name}", len(self.metricCol) + 2, 0))
+
     def write(self, text):
         self.responseTextBox.configure(state = "normal")
         self.responseTextBox.delete("0.0", "end")
@@ -55,23 +57,70 @@ class modelWrapper:
         self.responseTextBox.configure(state = "disabled")
         pass
 
-    def __init__(self, root, row, column):
+    def update(self):
+        self.write(self.interactionCol[self.interactionIndex].response)
+        for metric in self.metricCol:
+            metric.update()
+
+    def addInteraction(self, query):
+        newInteraction = interactionInstance(self)
+        newInteraction.id = self.interactionID
+        newInteraction.context = self.context
+        newInteraction.userQuery = query
+
+        self.model.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.model.context = self.context + f"\n__USER__:" + f"{query}\n" + f"__EXPERT__:"
+        response = self.model.query()
+        self.model.model.to("cpu")
+
+        newInteraction.response = response
+        self.context = self.context + f"__USER__:{query}\n" + f"__EXPERT__:{response}\n"
+        print(self.context)
+        # self.context = self.context + f"__USER__:{query}\n" + f"__EXPERT__:{response}\n"
+        self.write(response)
+
+        self.interactionCol.append(newInteraction)
+        self.interactionIndex = self.interactionID
+        self.interactionID += 1
+        return response
+
+    def __init__(self, name, root, modelDir, row, column):
         self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
 
         self.gradingFrame = root
-        self.responseName = ""
-        self.modelName = ""
+        self.name = name
+        self.modelDir = modelDir
         self.metricCol = []
+        self.interactionCol = []
+        self.interactionID = 0
+        self.interactionIndex = 0
+        self.context = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
+Example Conversation:
+time: {datetime.datetime.now()}
+__USER__: Hi Elae how are you today?
+__EXPERT__: I am doing well today Alex! Ready for anything you might throw at me.
+time: {datetime.datetime.now()}
+__USER__: Great! I would like to take a look into computer memory today.
+__EXPERT__: That sounds great! Are we planning to add something to my capabilities?
+
+Current Conversation:
+__EXPERT__: Hi Alex, how can I help you?\n"""
+
+
 
         self.responseFrame = customtkinter.CTkFrame(self.gradingFrame)
         self.responseFrame.columnconfigure(0, weight= 1)
         self.responseFrame.grid(row = row, column = column, sticky = "nsew", padx = 5, pady = 5)
-        self.Label = customtkinter.CTkLabel(self.responseFrame, text = f"{self.responseName}", font = self.smallFont)
+        self.Label = customtkinter.CTkLabel(self.responseFrame, text = f"{self.name}", font = self.smallFont)
         self.Label.grid(row = 0, column = 0, columnspan = 2, sticky = "nw", padx = 5, pady = 5)
         self.responseTextBox = customtkinter.CTkTextbox(self.responseFrame, height = 100, font = self.smallFont, wrap = "word")
         self.responseTextBox.grid(row = 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
         self.responseTextBox.configure(state = "disabled")
+        self.addMetric("Overall")
+
+        self.model =  GenericModel.Model(self.modelDir)
+        self.model.model.to("cpu")
         pass
 
 class ElaeApplication:
@@ -81,17 +130,17 @@ class ElaeApplication:
         self.chatTextbox.insert("end", f"{text}\n", justify)
         self.chatTextbox.configure(state = "disabled")
 
-    def gradeWrite(self):
+    def userQuery(self, text):
         self.interactionIndex = self.interactionID
         self.interactionID += 1
 
-        for metric in self.metricCol:
-            metric.update()
+        feedForwardText = text
 
-        self.innerResponseWrapper.write(f"{self.responseCol[-1].innerResponse}\n")
-        self.outerResponseWrapper.write(f"{self.responseCol[-1].outerResponse}\n")
+        for model in self.modelCol:
+            feedForwardText = model.addInteraction(feedForwardText)
+            self.write(feedForwardText, "left")
 
-        if len(self.responseCol) > 1:
+        if self.interactionIndex > 0:
             self.backInteractionButton.configure(state = "normal")
 
     #Command for sending a query
@@ -100,53 +149,34 @@ class ElaeApplication:
         self.entry.delete(0, "end")
         self.write(text, "right")
 
-        newInteraction = interactionInstance(self)
-        newInteraction.id = self.interactionID
-        newInteraction.innerContext = self.Elae.promptHistoryInner
-        newInteraction.outerContext = self.Elae.promptHistoryOuter
-        newInteraction.userQuery = text
-
-        innerResponse, outerResponse = self.Elae.chatQuery(text)
-
-        newInteraction.innerResponse = innerResponse
-        newInteraction.outerResponse = outerResponse
-        self.responseCol.append(newInteraction)
-        self.interactionLabel.configure(text = f"Interaction {newInteraction.id}")
-
-        self.write(f"Internal: {innerResponse}", "left")
-        self.write(f"External: {outerResponse}", "left")
-        self.gradeWrite()
+        self.userQuery(text)
 
     def nextInteractionPress(self):
 
-        if len(self.responseCol) > 1 and self.interactionIndex != len(self.responseCol) - 1:
+        if self.modelCol[0].interactionIndex < len(self.modelCol[0].interactionCol) + 2 and self.interactionIndex != len(self.modelCol[0].interactionCol) - 1:
             self.interactionIndex += 1
 
-        for metric in self.metricCol:
-            metric.update()
+        for model in self.modelCol:
+            model.interactionIndex = self.interactionIndex
+            model.update()
 
-        self.innerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].innerResponse}\n")
-        self.outerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].outerResponse}\n")
+        self.interactionLabel.configure(text = f"Interaction {self.interactionIndex}")
 
-        self.interactionLabel.configure(text = f"Interaction {self.responseCol[self.interactionIndex].id}")
-
-        if self.interactionIndex == len(self.responseCol) - 1:
+        if self.interactionIndex == len(self.modelCol[0].interactionCol) - 1:
             self.nextInteractionButton.configure(state = "disabled")
         
         self.backInteractionButton.configure(state = "normal")
 
     def backInteractionPress(self):
 
-        if len(self.responseCol) > 1 and self.interactionIndex != 0:
+        if len(self.modelCol[0].interactionCol) >= 1 and self.interactionIndex != 0:
                 self.interactionIndex -= 1
 
-        for metric in self.metricCol:
-            metric.update()
+        for model in self.modelCol:
+            model.interactionIndex = self.interactionIndex
+            model.update()
 
-        self.outerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].outerResponse}\n")
-        self.innerResponseWrapper.write(f"{self.responseCol[self.interactionIndex].innerResponse}\n")
-
-        self.interactionLabel.configure(text = f"Interaction {self.responseCol[self.interactionIndex].id}")
+        self.interactionLabel.configure(text = f"Interaction {self.interactionIndex}")
 
         if self.interactionIndex == 0:
             self.backInteractionButton.configure(state = "disabled")
@@ -160,35 +190,35 @@ class ElaeApplication:
         timeStampString.replace("-", "_")
         file = open(f"./transcripts/{timeStampString}_Transcript.json", "w+")
         file.write("{")
-        for interaction in self.responseCol:
-            file.write(f"\n\"interaction{interaction.id}\" : ")
-            file.write("{")
-            file.write(f"\n\"id\" : {interaction.id},")
-            file.write(f"\n\"time\" : \"{interaction.time}\",")
-            tempString = interaction.innerContext.replace("\n", "\\n")
-            file.write(f"\n\"innerContext\" : \"{tempString}\",")
-            tempString = interaction.outerContext.replace("\n", "\\n")
-            file.write(f"\n\"outerContext\" : \"{tempString}\",")
-            file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
-            file.write(f"\n\"innerResponse\" : \"{interaction.innerResponse}\",")
-            file.write(f"\n\"outerResponse\" : \"{interaction.outerResponse}\",")
-            file.write(f"\n\"metrics\" : ")
-            file.write("{")
-            index = 0
-            for metric in self.metricCol:
-                tempText = metric.text.replace(" ", "_")
-                inOutText = "inner" if index < self.innerOuterIndexThreshold else "outer"
-                if metric != self.metricCol[-1]:
-                    file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]},")
-                else:
-                    file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]}")
-                index += 1
-            file.write("}")
+        # for interaction in self.responseCol:
+        #     file.write(f"\n\"interaction{interaction.id}\" : ")
+        #     file.write("{")
+        #     file.write(f"\n\"id\" : {interaction.id},")
+        #     file.write(f"\n\"time\" : \"{interaction.time}\",")
+        #     tempString = interaction.innerContext.replace("\n", "\\n")
+        #     file.write(f"\n\"innerContext\" : \"{tempString}\",")
+        #     tempString = interaction.outerContext.replace("\n", "\\n")
+        #     file.write(f"\n\"outerContext\" : \"{tempString}\",")
+        #     file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
+        #     file.write(f"\n\"innerResponse\" : \"{interaction.innerResponse}\",")
+        #     file.write(f"\n\"outerResponse\" : \"{interaction.outerResponse}\",")
+        #     file.write(f"\n\"metrics\" : ")
+        #     file.write("{")
+        #     index = 0
+        #     for metric in self.metricCol:
+        #         tempText = metric.text.replace(" ", "_")
+        #         inOutText = "inner" if index < self.innerOuterIndexThreshold else "outer"
+        #         if metric != self.metricCol[-1]:
+        #             file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]},")
+        #         else:
+        #             file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]}")
+        #         index += 1
+        #     file.write("}")
 
-            if interaction == self.responseCol[-1]:
-                file.write("\n}")
-            else:
-                file.write("\n},")
+        #     if interaction == self.responseCol[-1]:
+        #         file.write("\n}")
+        #     else:
+        #         file.write("\n},")
 
         file.write("\n}")
         file.close()
@@ -202,11 +232,11 @@ class ElaeApplication:
         pass
 
     def __init__(self):
-        self.responseCol = []
         self.metricCol = []
         self.innerOuterIndexThreshold = 3
         self.interactionID = 0
         self.interactionIndex = 0
+        self.modelCol = []
 
         #Root window
         self.root = customtkinter.CTk()
@@ -260,27 +290,18 @@ class ElaeApplication:
         self.interactionLabel = customtkinter.CTkLabel(self.gradingFrame, text = "Interact with Elae to see information here!", font = self.font)
         self.interactionLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
 
-        #Inner Response Frame
-        self.innerResponseWrapper = modelWrapper(self.gradingFrame, 1, 0)
+        #Inner Response Model
+        self.innerResponseWrapper = modelWrapper("Inner Response", self.gradingFrame, "./elaeProto0", 1, 0)
+        self.innerResponseWrapper.addMetric("Relevance")
+        self.innerResponseWrapper.addMetric("Helpful")
+        self.modelCol.append(self.innerResponseWrapper)
 
-        self.innerOverallSlider = metricSlider(self, self.innerResponseWrapper.responseFrame, "Overall", 2, 0)
-        self.innerResponseWrapper.metricCol.append(self.innerOverallSlider)
-        self.innerRelevanceSlider = metricSlider(self, self.innerResponseWrapper.responseFrame, "Relevance", 3, 0)
-        self.innerResponseWrapper.metricCol.append(self.innerRelevanceSlider)
-        self.innerHelpfulSlider = metricSlider(self, self.innerResponseWrapper.responseFrame, "Helpful", 4, 0)
-        self.innerResponseWrapper.metricCol.append(self.innerHelpfulSlider)
-
-        #Outer Response Frame
-        self.outerResponseWrapper = modelWrapper(self.gradingFrame, 2, 0)
-
-        self.outerOverallSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Overall", 2, 0)
-        self.outerResponseWrapper.metricCol.append(self.outerOverallSlider)
-        self.outerRelevanceSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Relevance", 3, 0)
-        self.outerResponseWrapper.metricCol.append(self.outerRelevanceSlider)
-        self.outerCoheranceSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Coherence", 4, 0)
-        self.outerResponseWrapper.metricCol.append(self.outerCoheranceSlider)
-        self.outerToneSlider = metricSlider(self, self.outerResponseWrapper.responseFrame, "Tone Matching", 5, 0)
-        self.outerResponseWrapper.metricCol.append(self.outerToneSlider)
+        #Outer Response Model
+        self.outerResponseWrapper = modelWrapper("Outer Response", self.gradingFrame, "./elaeProto0", 2, 0)
+        self.outerResponseWrapper.addMetric("Relevance")
+        self.outerResponseWrapper.addMetric("Coherence")
+        self.outerResponseWrapper.addMetric("Tone")
+        self.modelCol.append(self.outerResponseWrapper)
 
         #Interaction buttons
         self.buttonFrame = customtkinter.CTkFrame(self.gradingFrame)
@@ -296,7 +317,7 @@ class ElaeApplication:
 
 
         #Spinning up Elae
-        self.Elae = ElaeModel.Elae()
+        # self.Elae = GenericModel.Model()
         # print(f"Adding Tokens...")
         # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": ["__USER__", "__EXPERT__", "__OUTPUT__"]})
         # # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__EXPERT__"})
