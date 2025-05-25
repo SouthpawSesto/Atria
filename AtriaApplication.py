@@ -8,15 +8,15 @@ import ElaeModel
 import GenericModel
 
 class metricSlider:
-    def __init__(self, caller, root, text , r, c):
+    def __init__(self, caller, text):
         self.caller = caller
         self.caller.metricCol.append(self)
-        self.root = root
+        self.root = caller.responseFrame
         self.text = text
         self.scoreIndex = len(self.caller.metricCol) - 1
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
-        self.frame = customtkinter.CTkFrame(root)
-        self.frame.grid(row = r, column = c, sticky = "nsew", padx = 5, pady = 5)
+        self.frame = customtkinter.CTkFrame(self.root)
+        self.frame.grid(row = len(caller.metricCol) + 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.frame.columnconfigure(1, weight= 1)
         self.sliderLabel = customtkinter.CTkLabel(self.frame, text = f"{text}", font = self.smallFont, width = 30)
         self.sliderLabel.grid(row = 0, column = 0, sticky = "ne", padx = 5, pady = 5)
@@ -51,7 +51,7 @@ class modelWrapper:
         self.addMetric("Test")
     
     def addMetric(self, name):
-        self.metricCol.append(metricSlider(self, self.responseFrame, f"{name}", len(self.metricCol) + 2, 0))
+        metricSlider(self, f"{name}")
         self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
 
     def write(self, text):
@@ -198,39 +198,44 @@ class ElaeApplication:
     def onClosing(self):
         timeStamp = datetime.datetime.now()
         timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
-        timeStampString.replace("-", "_")
+        timeStampString = timeStampString.replace("-", "_")
         file = open(f"./transcripts/{timeStampString}_Transcript.json", "w+")
         file.write("{")
-        # for interaction in self.responseCol:
-        #     file.write(f"\n\"interaction{interaction.id}\" : ")
-        #     file.write("{")
-        #     file.write(f"\n\"id\" : {interaction.id},")
-        #     file.write(f"\n\"time\" : \"{interaction.time}\",")
-        #     tempString = interaction.innerContext.replace("\n", "\\n")
-        #     file.write(f"\n\"innerContext\" : \"{tempString}\",")
-        #     tempString = interaction.outerContext.replace("\n", "\\n")
-        #     file.write(f"\n\"outerContext\" : \"{tempString}\",")
-        #     file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
-        #     file.write(f"\n\"innerResponse\" : \"{interaction.innerResponse}\",")
-        #     file.write(f"\n\"outerResponse\" : \"{interaction.outerResponse}\",")
-        #     file.write(f"\n\"metrics\" : ")
-        #     file.write("{")
-        #     index = 0
-        #     for metric in self.metricCol:
-        #         tempText = metric.text.replace(" ", "_")
-        #         inOutText = "inner" if index < self.innerOuterIndexThreshold else "outer"
-        #         if metric != self.metricCol[-1]:
-        #             file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]},")
-        #         else:
-        #             file.write(f"\n\"{inOutText}_{tempText}\" : {interaction.scoreVector[index]}")
-        #         index += 1
-        #     file.write("}")
+        for model in self.modelCol:
+            file.write(f"\n\"{model.name}\" : ")
+            file.write("{")
+            file.write(f"\n\"directory\" : \"{model.modelDir}\",")
+            for interaction in model.interactionCol:
+                tempText = model.name.replace(" ", "_")
+                file.write(f"\n\"{model.name}_interaction_{interaction.id}\" : ")
+                file.write("{")
+                file.write(f"\n\"id\" : {interaction.id},")
+                file.write(f"\n\"time\" : \"{interaction.time}\",")
+                tempString = interaction.context.replace("\n", "\\n")
+                file.write(f"\n\"context\" : \"{tempString}\",")
+                file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
+                file.write(f"\n\"outerResponse\" : \"{interaction.response}\",")
+                file.write(f"\n\"metrics\" : ")
+                file.write("{")
+                index = 0
+                for metric in model.metricCol:
+                    tempText = metric.text.replace(" ", "_")
+                    if metric != model.metricCol[-1]:
+                        file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]},")
+                    else:
+                        file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]}")
+                    index += 1
+                file.write("}")
 
-        #     if interaction == self.responseCol[-1]:
-        #         file.write("\n}")
-        #     else:
-        #         file.write("\n},")
+                if interaction == model.interactionCol[-1]:
+                    file.write("\n}")
+                else:
+                    file.write("\n},")
 
+            if model == self.modelCol[-1]:
+                file.write("\n}")
+            else:
+                file.write("\n},")
         file.write("\n}")
         file.close()
 
@@ -244,7 +249,6 @@ class ElaeApplication:
 
     def __init__(self):
         self.metricCol = []
-        self.innerOuterIndexThreshold = 3
         self.interactionID = 0
         self.interactionIndex = 0
         self.modelCol = []
