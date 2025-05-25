@@ -10,7 +10,6 @@ class modelEditWindow:
     
     def browseModelDir(self):
         self.modelDir = customtkinter.filedialog.askdirectory()
-        # self.dir.configure(placeholder_text = self.modelDir)
         self.dir.insert(0, self.modelDir)
         self.root.focus()
 
@@ -36,6 +35,7 @@ class modelEditWindow:
         self.name = customtkinter.CTkEntry(self.root, placeholder_text= "Enter the name of your model", font = self.font)
         self.name.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
         self.name.bind("<Return>", self.addModelButtonPress)
+        self.name.focus()
 
         self.modelDir = ""
         self.dirLabel = customtkinter.CTkLabel(self.root, text = "Model Location", font = self.font)

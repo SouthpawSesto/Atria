@@ -48,9 +48,6 @@ class interactionInstance:
         pass
 
 class modelWrapper:
-    # def addMetricButtonPress(self):
-    #     self.addMetric("Test")
-    
     def addMetric(self, name = None):
         if name == None:
             name = ModelEditWindow.metricEditWindow().onClose()[0]
@@ -200,7 +197,6 @@ class ElaeApplication:
 
     def addModelButtonPress(self):
         editArgs = ModelEditWindow.modelEditWindow().onClose()
-        print(editArgs)
         modelWrapper(self, f"{editArgs[0]}", editArgs[1])
         self.addModelButton.grid(column = 0, row = len(self.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
         pass
@@ -277,11 +273,12 @@ class ElaeApplication:
 
         self.fileMenu = self.menu.add_cascade("File")
         self.fileDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.fileMenu)
+        self.fileDropdown.add_option("New Submodel")
+        self.fileDropdown.add_option("Clone Submodel")
         self.fileDropdown.add_option("New Model")
         self.fileDropdown.add_option("Load Model")
         self.fileDropdown.add_option("Clone Model")
         self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
-        # self.fileDropdown.add_option("Save Application State")
 
         #Mainframe for whole window
         self.mainFrame = customtkinter.CTkFrame(self.root)
@@ -336,7 +333,6 @@ class ElaeApplication:
         self.nextInteractionButton = customtkinter.CTkButton(self.buttonFrame, text = "Next", command = self.nextInteractionPress, font = self.smallFont)
         self.nextInteractionButton.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
         self.nextInteractionButton.configure(state = "disabled")
-
 
         # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": ["__USER__", "__EXPERT__", "__OUTPUT__"]})
         # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__EXPERT__"})
