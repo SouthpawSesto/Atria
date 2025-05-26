@@ -19,17 +19,19 @@ class metricSlider:
         self.editMode = caller.editMode
         self.scoreIndex = len(self.caller.metricCol) - 1
         self.frame = customtkinter.CTkFrame(self.root)
-        self.frame.grid(row = len(caller.metricCol) + 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
+        self.frame.grid(row = len(caller.metricCol) + 1, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
         self.frame.columnconfigure(1, weight= 1)
         self.sliderLabel = customtkinter.CTkLabel(self.frame, text = f"{self.name}", font = self.smallFont, width = 30)
         self.sliderLabel.grid(row = 0, column = 0, sticky = "ne", padx = 5, pady = 5)
         self.slider = customtkinter.CTkSlider(self.frame, from_=0, to=100, command = self.innerSliderEvent)
-        self.slider.grid(row = 0, column = 1, sticky = "new", padx = 5, pady = 5)
+        # self.slider.grid(row = 0, column = 1, sticky = "new", padx = 5, pady = 5)
         self.slider.set(0)
         self.sliderValLabel = customtkinter.CTkLabel(self.frame, text = f"0", font = self.smallFont)
-        self.sliderValLabel.grid(row = 0, column = 2, sticky = "new", padx = 5, pady = 5)
-        self.editButton = customtkinter.CTkButton(self.frame, text="Edit Metric", command=self.editButtonPress, font = self.font)
+        # self.sliderValLabel.grid(row = 0, column = 2, sticky = "new", padx = 5, pady = 5)
+        self.editButton = customtkinter.CTkButton(self.frame, text="Edit Metric", command=self.editButtonPress, font = self.smallFont)
         self.editButton.grid(row = 0, column = 3, sticky = "nsew", padx = 5, pady = 5)
+        self.deleteButton = customtkinter.CTkButton(self.frame, text="Delete Metric", command=self.deleteButtonPress, font = self.smallFont)
+        self.deleteButton.grid(column = 4, row = 0, sticky = "nsew", padx = 5, pady = 5)
 
     def innerSliderEvent(self, * args):
         self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex] = round(args[0], 0)
@@ -45,9 +47,15 @@ class metricSlider:
     def toggleEdit(self):
         if self.editMode == True:
             self.editButton.grid_forget()
+            self.deleteButton.grid_forget()
+            self.slider.grid(row = 0, column = 1, sticky = "new", padx = 5, pady = 5)
+            self.sliderValLabel.grid(row = 0, column = 2, sticky = "new", padx = 5, pady = 5)
             self.editMode = False
         else:
             self.editButton.grid(row = 0, column = 3, sticky = "nsew", padx = 5, pady = 5)
+            self.deleteButton.grid(column = 4, row = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.slider.grid_forget()
+            self.sliderValLabel.grid_forget()
             self.editMode = True
 
     def editButtonPress(self):
@@ -55,6 +63,9 @@ class metricSlider:
         self.name  = name
         self.sliderLabel.configure(text = f"{self.name}")
 
+    def deleteButtonPress(self):
+        self.caller.deleteMetric(self)
+        
 class interactionInstance:
     def __init__(self, caller):
         self.caller = caller
@@ -93,10 +104,12 @@ class modelWrapper:
         if self.editMode == True:
             self.addMetricButton.grid_forget()
             self.editButton.grid_forget()
+            self.deleteButton.grid_forget()
             self.editMode = False
         else:
-            self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
+            self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
             self.editButton.grid(column = 1, row = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.deleteButton.grid(column = 2, row = 0, sticky = "nsew", padx = 5, pady = 5)
             self.editMode = True
 
         for metric in self.metricCol:
@@ -146,11 +159,28 @@ class modelWrapper:
         self.Label.configure(text = f"{self.name}\n{self.modelDir}", justify = "left", anchor = "w")
         pass
 
+    def deleteButtonPress(self):
+        self.caller.deleteModel(self)
+
+    def deleteMetric(self, metric):
+        try:
+            for interaction in self.interactionCol:
+                del interaction.scoreVector[metric.scoreIndex]
+        except:
+            pass
+
+        for imetric in self.metricCol:
+            if imetric != metric and imetric.scoreIndex > metric.scoreIndex:
+                imetric.scoreIndex -= 1
+        metric.frame.grid_forget()
+        del metric
+
     def __init__(self, caller, name, modelDir):
         self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
         self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
 
-        self.parentFrame = caller.modelFrame
+        self.modelID = len(caller.modelCol)
+        self.caller = caller
         self.modelDir = modelDir
         self.name = name
         self.metricCol = []
@@ -159,18 +189,20 @@ class modelWrapper:
         self.interactionIndex = 0
         self.editMode = caller.editMode
 
-        self.responseFrame = customtkinter.CTkFrame(self.parentFrame)
+        self.responseFrame = customtkinter.CTkFrame(self.caller.modelFrame)
         self.responseFrame.columnconfigure(0, weight= 1)
         self.responseFrame.grid(row = len(caller.modelCol) + 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.Label = customtkinter.CTkLabel(self.responseFrame, text = f"{self.name}\n{self.modelDir}", font = self.smallFont, justify = "left", anchor = "w")
         self.Label.grid(row = 0, column = 0, sticky = "nw", padx = 5, pady = 5)
         self.responseTextBox = customtkinter.CTkTextbox(self.responseFrame, height = 100, font = self.smallFont, wrap = "word")
-        self.responseTextBox.grid(row = 1, column = 0, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
+        self.responseTextBox.grid(row = 1, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
         self.responseTextBox.configure(state = "disabled")
-        self.editButton = customtkinter.CTkButton(self.responseFrame, text="Edit Model", command=self.editButtonPress, font = self.font)
+        self.editButton = customtkinter.CTkButton(self.responseFrame, text="Edit Model", command=self.editButtonPress, font = self.smallFont)
         self.editButton.grid(column = 1, row = 0, sticky = "nsew", padx = 5, pady = 5)
+        self.deleteButton = customtkinter.CTkButton(self.responseFrame, text="Delete Model", command=self.deleteButtonPress, font = self.smallFont)
+        self.deleteButton.grid(column = 2, row = 0, sticky = "nsew", padx = 5, pady = 5)
         self.addMetricButton = customtkinter.CTkButton(self.responseFrame, text="+", command=self.addMetric, font = self.font)
-        self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
+        self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
 
         self.addMetric("Overall")
 
@@ -328,6 +360,15 @@ class ElaeApplication:
 
         for model in self.modelCol:
             model.toggleEdit()
+
+    def deleteModel(self, model):
+        for imodel in self.modelCol:
+            if imodel != model and imodel.modelID > model.modelID:
+                imodel.modelID -= 1
+                imodel.responseFrame.grid(row = imodel.modelID + 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        model.responseFrame.grid_forget()
+        del self.modelCol[model.modelID]
+        del model
 
     def __init__(self):
         self.metricCol = []

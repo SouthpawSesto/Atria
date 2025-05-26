@@ -29,6 +29,7 @@ class modelEditWindow:
         self.root.title("Add or Edit Model")
         self.root.focus()
         self.root.columnconfigure(1, weight= 1)
+        self.root.bind("<Return>", self.addModelButtonPress)
 
         self.nameLabel = customtkinter.CTkLabel(self.root, text = "Name", font = self.font)
         self.nameLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
@@ -44,6 +45,7 @@ class modelEditWindow:
         self.dir.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
         self.browseModelButton = customtkinter.CTkButton(self.root, text="Browse", command=self.browseModelDir, font = self.font)
         self.browseModelButton.grid(row = 1, column = 2, sticky = "nsew", padx = 5, pady = 5)
+        self.dir.bind("<Return>", self.addModelButtonPress)
 
         self.addModelButton = customtkinter.CTkButton(self.root, text="Add Model", command=self.addModelButtonPress, font = self.font)
         self.addModelButton.grid(column = 0, row = 2, sticky = "nsew", padx = 5, pady = 5)
@@ -73,6 +75,7 @@ class metricEditWindow:
         self.root.title("Add or Edit Metric")
         self.root.focus()
         self.root.columnconfigure(1, weight= 1)
+        self.root.bind("<Return>", self.addMetricButtonPress)
 
         self.nameLabel = customtkinter.CTkLabel(self.root, text = "Name", font = self.font)
         self.nameLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
