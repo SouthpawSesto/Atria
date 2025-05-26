@@ -320,7 +320,7 @@ class ElaeApplication:
                 file.write("{")
                 index = 0
                 for metric in model.metricCol:
-                    tempText = metric.text.replace(" ", "_")
+                    tempText = metric.name.replace(" ", "_")
                     if metric != model.metricCol[-1]:
                         file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]},")
                     else:
