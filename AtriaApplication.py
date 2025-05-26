@@ -4,7 +4,6 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import datetime
 
-import ElaeModel
 import GenericModel
 import ModelEditWindow
 
@@ -32,9 +31,11 @@ class metricSlider:
         self.sliderValLabel.configure(text = f"{self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
 
     def update(self):
-        self.slider.set(self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex])
-        self.sliderValLabel.configure(text = f"{self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
-        pass
+        try:
+            self.slider.set(self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex])
+            self.sliderValLabel.configure(text = f"{self.caller.interactionCol[self.caller.interactionIndex].scoreVector[self.scoreIndex]}")
+        except:
+            pass
 
 class interactionInstance:
     def __init__(self, caller):
@@ -55,15 +56,34 @@ class modelWrapper:
         metricSlider(self, f"{name}")
         self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
 
+        try:
+            for interaction in self.interactionCol:
+                interaction.scoreVector.append(0)
+                pass
+        except:
+            pass
+
     def write(self, text):
         self.responseTextBox.configure(state = "normal")
         self.responseTextBox.delete("0.0", "end")
         self.responseTextBox.insert("end", f"{text}\n")
         self.responseTextBox.configure(state = "disabled")
         pass
+    
+    def toggleEdit(self):
+        if self.editMode == True:
+            self.addMetricButton.grid_forget()
+            self.editMode = False
+        else:
+            self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
+            self.editMode = True
 
     def update(self):
-        self.write(self.interactionCol[self.interactionIndex].response)
+        try:
+            self.write(self.interactionCol[self.interactionIndex].response)
+        except:
+            pass
+
         for metric in self.metricCol:
             metric.update()
 
@@ -98,6 +118,7 @@ class modelWrapper:
         self.interactionCol = []
         self.interactionID = 0
         self.interactionIndex = 0
+        self.editMode = caller.editMode
 
         self.responseFrame = customtkinter.CTkFrame(self.parentFrame)
         self.responseFrame.columnconfigure(0, weight= 1)
@@ -253,18 +274,31 @@ class ElaeApplication:
     def saveAndTrain(self):
         customtkinter.filedialog.askopenfilename()
         pass
+    
+    def toggleEdit(self):
+        if self.editMode == True:
+            self.addModelButton.grid_forget()
+            self.editMode = False
+        else:
+            self.addModelButton.grid(column = 0, row = len(self.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
+            self.editMode = True
+            pass
+        pass
+
+        for model in self.modelCol:
+            model.toggleEdit()
 
     def __init__(self):
         self.metricCol = []
         self.interactionID = 0
         self.interactionIndex = 0
         self.modelCol = []
+        self.editMode = True
 
         #Root window
         self.root = customtkinter.CTk()
         self.root.geometry("1200x1000")
         self.root.title("Atria")
-        # self.root.iconbitmap()
         self.root.grid_columnconfigure(0, weight= 1)
         self.root.grid_rowconfigure(0, weight= 1)
 
@@ -279,6 +313,10 @@ class ElaeApplication:
         self.fileDropdown.add_option("Load Model")
         self.fileDropdown.add_option("Clone Model")
         self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
+
+        self.editMenu = self.menu.add_cascade("Edit")
+        self.editDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.editMenu)
+        self.editDropdown.add_option("Toggle Edit Mode", self.toggleEdit)
 
         #Mainframe for whole window
         self.mainFrame = customtkinter.CTkFrame(self.root)
@@ -333,13 +371,6 @@ class ElaeApplication:
         self.nextInteractionButton = customtkinter.CTkButton(self.buttonFrame, text = "Next", command = self.nextInteractionPress, font = self.smallFont)
         self.nextInteractionButton.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
         self.nextInteractionButton.configure(state = "disabled")
-
-        # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": ["__USER__", "__EXPERT__", "__OUTPUT__"]})
-        # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__EXPERT__"})
-        # self.Elae.tokenizer.add_special_tokens({"additional_special_tokens": f"__OUTPUT__"})
-        # self.Elae.model.resize_token_embeddings(len(self.Elae.tokenizer))
-        # self.Elae.tokenizer.save_pretrained("./elaeProto0")
-        # self.Elae.model.save_pretrained("./elaeProto0")
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.mainloop()
