@@ -8,6 +8,7 @@ import datetime
 import modelWrapper
 import ModelEditWindow
 import AtriaSaveLoad
+import pluginManager
 
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
@@ -147,6 +148,7 @@ class ElaeApplication:
 
     def saveModel(self):
         AtriaSaveLoad.saveModel(self)
+
     def saveModelAs(self):
         self.saveDir = ""
         AtriaSaveLoad.saveModel(self)
@@ -261,6 +263,11 @@ class ElaeApplication:
         self.nextInteractionButton = customtkinter.CTkButton(self.buttonFrame, text = "Next", command = self.nextInteractionPress, font = self.smallFont)
         self.nextInteractionButton.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
         self.nextInteractionButton.configure(state = "disabled")
+
+        #Load plugins
+        self.pluginManager = pluginManager.pluginManager("plugins")
+        self.pluginManager.loadPlugins()
+        self.pluginManager.runHook("__preprocessing__", self)
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.focus()
