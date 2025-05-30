@@ -66,7 +66,7 @@ class Model:
         
         result = self.tokenizer.decode(output[0], skip_special_tokens=False).strip()
         # print(result)
-        ai_response = result.split(f"__EXPERT__:")[-1].strip()
+        ai_response = result.split(f"{self.outputToken}:")[-1].strip()
         ai_response = ai_response.split("\n")[0].strip()
         if "." in ai_response:
             ai_response = ai_response.split(".")[0].strip()
@@ -126,3 +126,4 @@ class Model:
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
 
         self.context =  ""
+        self.outputToken = ""

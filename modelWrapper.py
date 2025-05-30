@@ -129,12 +129,12 @@ class modelWrapper:
         newInteraction.userQuery = query
 
         self.model.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-        self.model.context = self.context + f"\n__USER__:" + f"{query}\n" + f"__EXPERT__:"
+        self.model.context = self.context + f"\n{self.inputToken}:" + f"{query}\n" + f"{self.outputToken}:"
         response = self.model.query()
         self.model.model.to("cpu")
 
         newInteraction.response = response
-        self.context = self.context + f"__USER__:{query}\n" + f"__EXPERT__:{response}\n"
+        self.context = self.context + f"{self.inputToken}:{query}\n" + f"{self.outputToken}:{response}\n"
         self.write(response)
 
         self.interactionCol.append(newInteraction)
@@ -148,7 +148,10 @@ class modelWrapper:
             self.name = editArgs[0]
             self.modelDir = editArgs[1]
             self.context = editArgs[2]
+            self.inputToken = editArgs[3]
+            self.outputToken = editArgs[4]
             self.startingContext = self.context
+            self.model.outputToken = self.outputToken
 
             if editArgs[1] != self.modelDir and editArgs[1] != "":
                 try:
@@ -191,6 +194,8 @@ class modelWrapper:
         self.interactionID = 0
         self.interactionIndex = 0
         self.editMode = caller.editMode
+        self.inputToken = ""
+        self.outputToken = ""
 
         self.responseFrame = customtkinter.CTkFrame(self.caller.modelFrame)
         self.responseFrame.columnconfigure(0, weight= 1)
@@ -209,9 +214,13 @@ class modelWrapper:
 
         self.addMetric("Overall")
 
+        self.specialTokens = []
         try:
             self.model = GenericModel.Model(self.modelDir)
             self.model.model.to("cpu")
+            for item in self.model.tokenizer.get_added_vocab():
+                # print(item)
+                self.specialTokens.append(item)
         except:
             self.caller.write(f"Could not load model at {self.modelDir}", "left")
 

@@ -275,7 +275,7 @@ class ElaeApplication:
         self.pluginManager = pluginManager.pluginManager("plugins")
         self.pluginManager.loadPlugins()
         #Example of running plugin
-        self.pluginManager.runHook("__preprocessing__", self)
+        self.pluginManager.runHook("__init__", self)
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.focus()

@@ -6,6 +6,8 @@ class modelEditWindow:
         self.returnArgs.append(self.name.get())
         self.returnArgs.append(self.dir.get())
         self.returnArgs.append(self.contextTextBox.get("0.0", "end"))
+        self.returnArgs.append(self.inputTokenCombobox.get())
+        self.returnArgs.append(self.outputTokenCombobox.get())
         # print(self.contextTextBox.get("0.0", "end"))
 
         self.onClose()
@@ -28,7 +30,7 @@ class modelEditWindow:
         self.model = model
 
         self.root = customtkinter.CTkToplevel()
-        self.root.geometry("800x300")
+        self.root.geometry("1000x500")
         self.root.protocol("WM_DELETE_WINDOW", self.onClose)
         self.root.title("Add or Edit Model")
         self.root.focus()
@@ -73,9 +75,29 @@ class modelEditWindow:
         self.contextTextBox.grid(row = 2, column = 1, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
         self.contextTextBox.insert("0.0", self.modelStartContext)
 
+        #Model turn tokens
+        self.turnTokenFrame = customtkinter.CTkFrame(self.root)
+        self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
+        self.turnTokenFrame.columnconfigure(1, weight = 1)
+        
+        self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.smallFont)
+        self.inputTokenLabel.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
+
+        self.inputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
+        self.inputTokenCombobox.configure(state = "readonly")
+        self.inputTokenCombobox.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+        self.inputTokenCombobox.set(self.model.inputToken)
+
+        self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.smallFont)
+        self.outputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+
+        self.outputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
+        self.outputTokenCombobox.configure(state = "readonly")
+        self.outputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
+        self.outputTokenCombobox.set(self.model.outputToken)
 
         self.addModelButton = customtkinter.CTkButton(self.root, text="Confirm", command=self.addModelButtonPress, font = self.font)
-        self.addModelButton.grid(column = 0, row = 4, sticky = "nsew", padx = 5, pady = 5)
+        self.addModelButton.grid(column = 0, row = 5, sticky = "nsew", padx = 5, pady = 5)
 
         self.root.wait_window()
 
