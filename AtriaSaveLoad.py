@@ -14,6 +14,8 @@ def saveModel(application):
         file.write(f"\n\"identifier\" : \"{model.modelID}\",")
         file.write(f"\n\"directory\" : \"{model.modelDir}\",")
         file.write(f"\n\"name\" : \"{model.name}\",")
+        tempString = model.startingContext.replace("\n", "\\n")
+        file.write(f"\n\"startingContext\" : \"{tempString}\",")
         file.write(f"\n\"metrics\" : ")
         file.write("[")
         index = 0
@@ -50,6 +52,8 @@ def loadModel(application):
         name = item
         dir = file[f"{name}"]["directory"]
         modelWrapper.modelWrapper(application, f"{name}",  f"{dir}")
+        application.modelCol[-1].context = file[f"{name}"]["startingContext"]
+        application.modelCol[-1].startingContext = file[f"{name}"]["startingContext"]
         application.addModelButton.grid(column = 0, row = len(application.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
         for metric in file[f"{name}"]["metrics"]:
             # print(metric)

@@ -143,19 +143,24 @@ class modelWrapper:
         return response
     
     def editButtonPress(self):
-        editArgs = ModelEditWindow.modelEditWindow().onClose()
-        self.name = editArgs[0]
-        self.Label.configure(text = f"{self.name}\n{self.modelDir}")
-
-        if editArgs[1] != self.modelDir and editArgs[1] != "":
+        editArgs = ModelEditWindow.modelEditWindow(self).onClose()
+        if editArgs != []:
+            self.name = editArgs[0]
             self.modelDir = editArgs[1]
-            delModel = self.model
-            self.model = GenericModel.Model(self.modelDir)
-            self.model.model.to("cpu")
-            del delModel
+            self.context = editArgs[2]
+            self.startingContext = self.context
 
-        self.Label.configure(text = f"{self.name}\n{self.modelDir}", justify = "left", anchor = "w")
-        pass
+            if editArgs[1] != self.modelDir and editArgs[1] != "":
+                try:
+                    delModel = self.model
+                    self.model = GenericModel.Model(self.modelDir)
+                    self.model.model.to("cpu")
+                    del delModel
+                except:
+                    self.caller.write(f"Could not load model at {self.modelDir}")
+
+            self.Label.configure(text = f"{self.name}\n{self.modelDir}", justify = "left", anchor = "w")
+            pass
 
     def deleteButtonPress(self):
         self.caller.deleteModel(self)
@@ -204,8 +209,12 @@ class modelWrapper:
 
         self.addMetric("Overall")
 
-        self.model =  GenericModel.Model(self.modelDir)
-        self.model.model.to("cpu")
+        try:
+            self.model = GenericModel.Model(self.modelDir)
+            self.model.model.to("cpu")
+        except:
+            self.caller.write(f"Could not load model at {self.modelDir}", "left")
+
         self.context = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
 Example Conversation:
 time: {datetime.datetime.now()}
@@ -217,6 +226,6 @@ __EXPERT__: That sounds great! Are we planning to add something to my capabiliti
 
 Current Conversation:
 __EXPERT__: Hi Alex, how can I help you?\n"""
-        
+        self.startingContext = self.context
         caller.modelCol.append(self)
         pass

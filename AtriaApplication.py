@@ -12,7 +12,7 @@ import pluginManager
 
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
-    def write(self, text, justify):
+    def write(self, text, justify = "left"):
         self.chatTextbox.configure(state = "normal")
         self.chatTextbox.insert("end", f"{text}\n", justify)
         self.chatTextbox.configure(state = "disabled")
@@ -78,7 +78,10 @@ class ElaeApplication:
 
     def addModelButtonPress(self):
         editArgs = ModelEditWindow.modelEditWindow().onClose()
-        modelWrapper.modelWrapper(self, f"{editArgs[0]}", editArgs[1])
+        if editArgs != []:
+            modelWrapper.modelWrapper(self, f"{editArgs[0]}", editArgs[1])
+            self.modelCol[-1].context = editArgs[2]
+            self.modelCol[-1].startingContext = editArgs[2]
         self.addModelButton.grid(column = 0, row = len(self.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
         pass
 
@@ -139,7 +142,11 @@ class ElaeApplication:
     def newModel(self):
         self.saveDir = ""
         self.root.title("Atria")
+        # for model in self.modelCol:
+        #     print(f"Delete Model {model.name}")
+        #     self.deleteModel(model)
         while self.modelCol != []:
+            # print(f"Delete Model {self.modelCol[0].name}")
             self.deleteModel(self.modelCol[0])
         
         self.editMode = False
@@ -267,6 +274,7 @@ class ElaeApplication:
         #Load plugins
         self.pluginManager = pluginManager.pluginManager("plugins")
         self.pluginManager.loadPlugins()
+        #Example of running plugin
         self.pluginManager.runHook("__preprocessing__", self)
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
