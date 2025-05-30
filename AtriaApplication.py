@@ -6,6 +6,7 @@ import datetime
 
 import GenericModel
 import ModelEditWindow
+import AtriaSaveLoad
 
 class metricSlider:
     def __init__(self, caller, text):
@@ -347,6 +348,9 @@ class ElaeApplication:
     def saveAndTrain(self):
         customtkinter.filedialog.askopenfilename()
         pass
+
+    def saveModel(self):
+        AtriaSaveLoad.saveModel(self)
     
     def toggleEdit(self):
         if self.editMode == True:
@@ -371,6 +375,8 @@ class ElaeApplication:
         del model
 
     def __init__(self):
+        self.saveDir = ""
+
         self.metricCol = []
         self.interactionID = 0
         self.interactionIndex = 0
@@ -392,6 +398,8 @@ class ElaeApplication:
         self.fileDropdown.add_option("New Submodel")
         self.fileDropdown.add_option("Clone Submodel")
         self.fileDropdown.add_option("New Model")
+        self.fileDropdown.add_option("Save Model", self.saveModel)
+        self.fileDropdown.add_option("Save Model As...", self.saveModel)
         self.fileDropdown.add_option("Load Model")
         self.fileDropdown.add_option("Clone Model")
         self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
