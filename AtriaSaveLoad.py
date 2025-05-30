@@ -1,8 +1,10 @@
 import customtkinter
+import json
+import modelWrapper
 
 def saveModel(application):
     if application.saveDir == "":
-        application. saveDir = customtkinter.filedialog.asksaveasfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),))
+        application.saveDir = customtkinter.filedialog.asksaveasfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),))
 
     file = open(f"{application.saveDir}", "w+")
     file.write("{")
@@ -31,5 +33,29 @@ def saveModel(application):
     file.write("\n}")
     file.close()
 
+
+    application.root.title(f"Atria\t{application.saveDir}")
+
 def loadModel(application):
+    # application.toggleEdit()
+    application.saveDir = customtkinter.filedialog.askopenfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),))
+    file = open(application.saveDir, "r")
+    try:
+        file = json.load(file)
+    except:
+        print("\nCould not load file")
+        pass
+    # print(file)
+    for item in file:
+        name = item
+        dir = file[f"{name}"]["directory"]
+        modelWrapper.modelWrapper(application, f"{name}",  f"{dir}")
+        application.addModelButton.grid(column = 0, row = len(application.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
+        for metric in file[f"{name}"]["metrics"]:
+            # print(metric)
+            if metric != "Overall":
+                application.modelCol[-1].addMetric(metric)
+
+    application.toggleEdit()
+    application.root.title(f"Atria\t{application.saveDir}")
     pass
