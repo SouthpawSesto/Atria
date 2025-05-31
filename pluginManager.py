@@ -6,7 +6,6 @@ class pluginManager:
     def loadPlugins(self):
         for filename in os.listdir(self.pluginDir):
             if filename.endswith(".py"):
-                print(filename)
                 moduleName = filename[:-3]
                 filepath = os.path.join(self.pluginDir, filename)
                 try:

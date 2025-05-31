@@ -158,6 +158,9 @@ class modelWrapper:
                     delModel = self.model
                     self.model = GenericModel.Model(self.modelDir)
                     self.model.model.to("cpu")
+                    self.model.model.name = self.name
+                    self.model.model.inputToken = self.inputToken
+                    self.model.model.outputToken = self.outputToken
                     del delModel
                 except:
                     self.caller.write(f"Could not load model at {self.modelDir}")
@@ -218,6 +221,10 @@ class modelWrapper:
         try:
             self.model = GenericModel.Model(self.modelDir)
             self.model.model.to("cpu")
+            self.model.model.name = self.name
+            self.model.model.inputToken = self.inputToken
+            self.model.model.outputToken = self.outputToken
+
             for item in self.model.tokenizer.get_added_vocab():
                 # print(item)
                 self.specialTokens.append(item)

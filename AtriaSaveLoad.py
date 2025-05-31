@@ -42,7 +42,7 @@ def saveModel(application):
 
 def loadModel(application):
     # application.toggleEdit()
-    application.saveDir = customtkinter.filedialog.askopenfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),))
+    application.saveDir = customtkinter.filedialog.askopenfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),), initialdir="./")
     file = open(application.saveDir, "r")
     try:
         file = json.load(file)
@@ -58,6 +58,7 @@ def loadModel(application):
         application.modelCol[-1].startingContext = file[f"{name}"]["startingContext"]
         application.modelCol[-1].inputToken = file[f"{name}"]["inputToken"]
         application.modelCol[-1].outputToken = file[f"{name}"]["outputToken"]
+        application.modelCol[-1].model.name = file[f"{name}"]["name"]
         application.addModelButton.grid(column = 0, row = len(application.modelCol) + 1, sticky = "nsew", padx = 5, pady = 5)
         for metric in file[f"{name}"]["metrics"]:
             # print(metric)

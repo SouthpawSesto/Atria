@@ -4,36 +4,43 @@ import datetime
 import json
 
 class atriaDataset:
-    def __init__(self, tokenizer, transcriptFile):
+    def __init__(self, modelName, tokenizer, transcriptFile, inputToken, outputToken, metric):
         self.tokenizer = tokenizer
         self.sampleDict = []
-        rawData = json.load(transcriptFile)
-        for item in rawData:
-            userQuery = item.get("userQuery", "").strip()
-            #Inner response training
-            modelResponse = item.get("innerResponse").strip()
-            metrics = item.get("metrics", {})
+        file = open(transcriptFile, "r")
+        try:
+            file = json.load(file)
+        except:
+            print(f"Could not open file {transcriptFile}")
+        for model in file:
+            if model != modelName:
+                # print(f"Skipping model {model} logs")
+                continue
+            # print(f"Model: {model}")
+            for interaction in file[f"{model}"]:
+                # print(f"Interaction: {interaction}")
+                if f"{interaction}" != "directory":
+                    userQuery = file[f"{model}"][f"{interaction}"]["userQuery"]
+                    modelResponse = file[f"{model}"][f"{interaction}"]["response"]
+                    weight = file[f"{model}"][f"{interaction}"]["metrics"][f"{metric}"]
+                    # weight = interaction[metric]
 
-            #Take user metrics, normalize and scale to punishment vs reward on a 25 : 75 split out of 100
-            #Only uses overall inner score for now
-            weight = metrics.get("inner_Overall", 100)
+                    if weight <= 25:
+                        weight = (weight - 25) / 25
+                    else:
+                        weight = (weight - 25) / 75
 
-            if weight <= 25:
-                weight = (weight - 25) / 25
-            else:
-                weight = (weight - 25) / 75
-
-            sampleText = f"__USER__: {userQuery}\n__EXPERT__: {modelResponse}"
-            tokenizedData = self.tokenizer(sampleText, truncation = True, max_length = 512, padding = "max_length", return_tensors = "pt")
-            #ID's, Mask and Labels are all neccessary for huggingface's trainer module, weights are used in this
-            #implimentation for taking user input into consideration
-            sample = {
-                "indput_ids" : tokenizedData["input_ids"],
-                "attention_mask" : tokenizedData["attention_mask"],
-                "labels" : tokenizedData["input_ids"],
-                "weights" : torch.tensor(weight)
-            }
-            self.sampleDict.append(sample)
+                    sampleText = f"{inputToken}: {userQuery}\n{outputToken}: {modelResponse}"
+                    tokenizedData = self.tokenizer(sampleText, truncation = True, max_length = 512, padding = "max_length", return_tensors = "pt")
+                    #ID's, Mask and Labels are all neccessary for huggingface's trainer module, weights are used in this
+                    #implimentation for taking user input into consideration
+                    sample = {
+                        "input_ids" : tokenizedData["input_ids"],
+                        "attention_mask" : tokenizedData["attention_mask"],
+                        "labels" : tokenizedData["input_ids"],
+                        "weights" : torch.tensor(weight)
+                    }
+                    self.sampleDict.append(sample)
 
     #Needed for huggingface compatibility 
     def __len__(self):
@@ -83,10 +90,10 @@ class Model:
     #When passed a file to train on this function will train the current model
     #on the passed dataset using the custom "Atria Dataset" class made to wrap
     #around user data and pass into hugginface's trainer object
-    def train(self, transcriptFile):
+    def train(self, transcriptFile, outputDir):
         trainingArgs = TrainingArguments(
-            output_dir= "./elaeProto0",
-            evaluation_strategy= "epoch",
+            output_dir= outputDir,
+            # evaluation_strategy= "epoch",
             save_strategy= "epoch",
             learning_rate= 5e-5,
             per_device_train_batch_size = 1,
@@ -101,29 +108,55 @@ class Model:
             gradient_accumulation_steps = 4
         )
 
-        trainer = Trainer(
-            model = self.model,
-            args = trainingArgs,
-            train_dataset = atriaDataset(self.tokenizer, transcriptFile),
-            tokenizer = self.tokenizer,
-        )
-        trainer.train()
+        file = open(transcriptFile, "r")
+        try:
+            file = json.load(file)
+        except:
+            print(f"Could not open file {transcriptFile}")
 
-        timeStamp = datetime.datetime.now()
-        timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
-        timeStampString.replace("-", "_")
-        trainer.save_model(f"{self.modelName}_{timeStampString}")
-        self.tokenizer.save_pretrained(f"{self.modelName}_{timeStampString}")
+        for metric in file[f"{self.name}"][f"{self.name}_interaction_0"]["metrics"]:
+            print(f"Training metric: {metric}")
+            trainer = Trainer(
+                model = self.model,
+                args = trainingArgs,
+                train_dataset = atriaDataset(self.name, self.tokenizer, transcriptFile, self.inputToken, self.outputToken, metric),
+                tokenizer = self.tokenizer,
+            )
+
+            trainer.train()
+
+            timeStamp = datetime.datetime.now()
+            timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
+            timeStampString.replace("-", "_")
+
+            trainer.save_model(f"{self.name}_{timeStampString}")
+            self.tokenizer.save_pretrained(f"{self.name}_{timeStampString}")
+
+            tempTokenizer = self.tokenizer
+            del tempTokenizer
+
+            tempModel = self.model
+            del tempModel
+
+            torch.cuda.empty_cache()
+
+            self.tokenizer = AutoTokenizer.from_pretrained(f"{self.name}_{timeStampString}")
+            self.tokenizer.pad_token = self.tokenizer.eos_tokenA
+
+            self.model = AutoModelForCausalLM.from_pretrained(f"{self.name}_{timeStampString}")
+            self.model.config.pad_token_id = self.tokenizer.eos_token_id
         pass
 
     def __init__(self, modelDir):
-        self.modelName = modelDir
+        self.modelDir = modelDir
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.modelName)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.modelDir)
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(self.modelName)
+        self.model = AutoModelForCausalLM.from_pretrained(self.modelDir)
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
 
+        self.name = ""
         self.context =  ""
+        self.inputToken = ""
         self.outputToken = ""

@@ -106,7 +106,7 @@ class ElaeApplication:
                     tempString = interaction.context.replace("\n", "\\n")
                     file.write(f"\n\"context\" : \"{tempString}\",")
                     file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
-                    file.write(f"\n\"outerResponse\" : \"{interaction.response}\",")
+                    file.write(f"\n\"response\" : \"{interaction.response}\",")
                     file.write(f"\n\"metrics\" : ")
                     file.write("{")
                     index = 0
@@ -136,7 +136,16 @@ class ElaeApplication:
 
     #Save and train the model. User selects data to use in training set.
     def saveAndTrain(self):
-        customtkinter.filedialog.askopenfilename()
+        transcriptFile = customtkinter.filedialog.askopenfilename(title = f"Trianing File", defaultextension= ".json", filetypes=(("JSON File", "*.json"),), initialdir="./")
+        outputDir = []
+        for model in self.modelCol:
+            outputDir.append(customtkinter.filedialog.askdirectory(title = f"Output directory for model: {model.name}"))
+        i = 0
+        for model in self.modelCol:
+            print(f"Training Model: {model.name}")
+            model.model.train(transcriptFile, outputDir[i])
+            i += 1
+
         pass
     
     def newModel(self):
@@ -210,12 +219,16 @@ class ElaeApplication:
         self.fileDropdown.add_option("New Model", self.newModel)
         self.fileDropdown.add_option("Save Model", self.saveModel)
         self.fileDropdown.add_option("Save Model As...", self.saveModelAs)
-        self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
+        # self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
         self.fileDropdown.add_option("Load Model", self.loadModel)
 
         self.editMenu = self.menu.add_cascade("Edit")
         self.editDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.editMenu)
         self.editDropdown.add_option("Toggle Edit Mode", self.toggleEdit)
+
+        self.trainMenu = self.menu.add_cascade("Train")
+        self.trainDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.trainMenu)
+        self.trainDropdown.add_option("Save and Train", self.saveAndTrain)
 
         #Mainframe for whole window
         self.mainFrame = customtkinter.CTkFrame(self.root)
