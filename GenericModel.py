@@ -141,7 +141,7 @@ class Model:
             torch.cuda.empty_cache()
 
             self.tokenizer = AutoTokenizer.from_pretrained(f"{self.name}_{timeStampString}")
-            self.tokenizer.pad_token = self.tokenizer.eos_tokenA
+            self.tokenizer.pad_token = self.tokenizer.eos_token
 
             self.model = AutoModelForCausalLM.from_pretrained(f"{self.name}_{timeStampString}")
             self.model.config.pad_token_id = self.tokenizer.eos_token_id
