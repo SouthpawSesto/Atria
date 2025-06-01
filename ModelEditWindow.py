@@ -1,4 +1,5 @@
 import customtkinter
+import os
 
 class modelEditWindow:
     def addModelButtonPress(self, * args):
@@ -13,7 +14,7 @@ class modelEditWindow:
         self.onClose()
     
     def browseModelDir(self):
-        self.modelDir = customtkinter.filedialog.askdirectory()
+        self.modelDir = customtkinter.filedialog.askdirectory(initialdir= f"{os.getcwd()}")
         self.dirTextVar.set(self.modelDir)
         # self.dir.insert(0, self.modelDir)
         self.root.focus()

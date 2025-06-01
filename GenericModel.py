@@ -2,6 +2,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 import datetime
 import json
+import os
 
 class atriaDataset:
     def __init__(self, modelName, tokenizer, transcriptFile, inputToken, outputToken, metric):
@@ -128,9 +129,15 @@ class Model:
             timeStamp = datetime.datetime.now()
             timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
             timeStampString.replace("-", "_")
+            outputDirString = f"{outputDir}/{self.name}_{timeStampString}"
+            # print(f"Output Directory: {outputDirString}")
 
-            trainer.save_model(f"{self.name}_{timeStampString}")
-            self.tokenizer.save_pretrained(f"{self.name}_{timeStampString}")
+            try:
+                trainer.save_model(f"{outputDirString}")
+                self.tokenizer.save_pretrained(f"{outputDirString}")
+            except:
+                trainer.save_model(f"{self.name}_{timeStampString}")
+                self.tokenizer.save_pretrained(f"{self.name}_{timeStampString}")
 
             tempTokenizer = self.tokenizer
             del tempTokenizer
@@ -140,11 +147,18 @@ class Model:
 
             torch.cuda.empty_cache()
 
-            self.tokenizer = AutoTokenizer.from_pretrained(f"{self.name}_{timeStampString}")
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(f"{outputDirString}")
+                self.tokenizer.pad_token = self.tokenizer.eos_token
 
-            self.model = AutoModelForCausalLM.from_pretrained(f"{self.name}_{timeStampString}")
-            self.model.config.pad_token_id = self.tokenizer.eos_token_id
+                self.model = AutoModelForCausalLM.from_pretrained(f"{outputDirString}")
+                self.model.config.pad_token_id = self.tokenizer.eos_token_id
+            except:
+                self.tokenizer = AutoTokenizer.from_pretrained(f"{self.name}_{timeStampString}")
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+
+                self.model = AutoModelForCausalLM.from_pretrained(f"{self.name}_{timeStampString}")
+                self.model.config.pad_token_id = self.tokenizer.eos_token_id
         pass
 
     def __init__(self, modelDir):

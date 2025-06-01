@@ -9,6 +9,7 @@ import modelWrapper
 import ModelEditWindow
 import AtriaSaveLoad
 import pluginManager
+import os
 
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
@@ -32,6 +33,8 @@ class ElaeApplication:
 
     #Command for sending a query
     def buttonPress(self, * args):
+        self.chatSaved = False
+
         text = self.entry.get()
         self.entry.delete(0, "end")
         self.write(text, "right")
@@ -87,59 +90,18 @@ class ElaeApplication:
 
     #Closing hook
     def onClosing(self):
-        if self.interactionID != 0:
-            timeStamp = datetime.datetime.now()
-            timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
-            timeStampString = timeStampString.replace("-", "_")
-            file = open(f"./transcripts/{timeStampString}_Transcript.json", "w+")
-            file.write("{")
-            for model in self.modelCol:
-                file.write(f"\n\"{model.name}\" : ")
-                file.write("{")
-                file.write(f"\n\"directory\" : \"{model.modelDir}\",")
-                for interaction in model.interactionCol:
-                    tempText = model.name.replace(" ", "_")
-                    file.write(f"\n\"{model.name}_interaction_{interaction.id}\" : ")
-                    file.write("{")
-                    file.write(f"\n\"id\" : {interaction.id},")
-                    file.write(f"\n\"time\" : \"{interaction.time}\",")
-                    tempString = interaction.context.replace("\n", "\\n")
-                    file.write(f"\n\"context\" : \"{tempString}\",")
-                    file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
-                    file.write(f"\n\"response\" : \"{interaction.response}\",")
-                    file.write(f"\n\"metrics\" : ")
-                    file.write("{")
-                    index = 0
-                    for metric in model.metricCol:
-                        tempText = metric.name.replace(" ", "_")
-                        if metric != model.metricCol[-1]:
-                            file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]},")
-                        else:
-                            file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]}")
-                        index += 1
-                    file.write("}")
-
-                    if interaction == model.interactionCol[-1]:
-                        file.write("\n}")
-                    else:
-                        file.write("\n},")
-
-                if model == self.modelCol[-1]:
-                    file.write("\n}")
-                else:
-                    file.write("\n},")
-            file.write("\n}")
-            file.close()
+        self.saveChat()
 
         self.root.destroy()
         pass
 
     #Save and train the model. User selects data to use in training set.
     def saveAndTrain(self):
-        transcriptFile = customtkinter.filedialog.askopenfilename(title = f"Trianing File", defaultextension= ".json", filetypes=(("JSON File", "*.json"),), initialdir="./")
+        cwd = os.getcwd()
+        transcriptFile = customtkinter.filedialog.askopenfilename(initialdir = f"{cwd}/transcripts",title = f"Trianing File", defaultextension= ".json", filetypes=(("JSON File", "*.json"),))
         outputDir = []
         for model in self.modelCol:
-            outputDir.append(customtkinter.filedialog.askdirectory(title = f"Output directory for model: {model.name}"))
+            outputDir.append(customtkinter.filedialog.askdirectory(initialdir= f"{cwd}", title = f"Output directory for model: {model.name}"))
         i = 0
         for model in self.modelCol:
             print(f"Training Model: {model.name}")
@@ -195,8 +157,77 @@ class ElaeApplication:
         del self.modelCol[model.modelID]
         del model
 
+    def saveChat(self):
+        if self.interactionID != 0 and self.chatSaved == False:
+            timeStamp = datetime.datetime.now()
+            timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
+            timeStampString = timeStampString.replace("-", "_")
+            cwd = os.getcwd()
+            fileName = customtkinter.filedialog.asksaveasfilename(initialdir= f"{cwd}/transcripts", initialfile =f"{timeStampString}_Transcript.json", defaultextension= ".json", filetypes= (("JSON File", "*.json"),))
+            file = open(f"{fileName}", "w+")
+            file.write("{")
+            for model in self.modelCol:
+                file.write(f"\n\"{model.name}\" : ")
+                file.write("{")
+                file.write(f"\n\"directory\" : \"{model.modelDir}\",")
+                for interaction in model.interactionCol:
+                    tempText = model.name.replace(" ", "_")
+                    file.write(f"\n\"{model.name}_interaction_{interaction.id}\" : ")
+                    file.write("{")
+                    file.write(f"\n\"id\" : {interaction.id},")
+                    file.write(f"\n\"time\" : \"{interaction.time}\",")
+                    tempString = interaction.context.replace("\n", "\\n")
+                    file.write(f"\n\"context\" : \"{tempString}\",")
+                    file.write(f"\n\"userQuery\" : \"{interaction.userQuery}\",")
+                    file.write(f"\n\"response\" : \"{interaction.response}\",")
+                    file.write(f"\n\"metrics\" : ")
+                    file.write("{")
+                    index = 0
+                    for metric in model.metricCol:
+                        tempText = metric.name.replace(" ", "_")
+                        if metric != model.metricCol[-1]:
+                            file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]},")
+                        else:
+                            file.write(f"\n\"{tempText}\" : {interaction.scoreVector[index]}")
+                        index += 1
+                    file.write("}")
+
+                    if interaction == model.interactionCol[-1]:
+                        file.write("\n}")
+                    else:
+                        file.write("\n},")
+
+                if model == self.modelCol[-1]:
+                    file.write("\n}")
+                else:
+                    file.write("\n},")
+            file.write("\n}")
+            file.close()
+
+            self.chatSaved = True
+
+    def newChat(self):
+        self.saveChat()
+
+        self.chatTextbox.configure(state = "normal")
+        self.chatTextbox.delete("0.0", "end")
+        self.chatTextbox.configure(state = "disabled")
+        self.write(f"Hi Alex, how can I help you?", "left")
+
+        for model in self.modelCol:
+            model.context = model.startingContext
+            model.interactionCol = []
+            model.responseTextBox.configure(state = "normal")
+            model.responseTextBox.delete("0.0", "end")
+            model.responseTextBox.configure(state = "disabled")
+
+            self.backInteractionButton.configure(state = "disabled")
+            self.nextInteractionButton.configure(state = "disabled")
+            self.interactionLabel.configure(text = "Interact with your model to see information here!")
+
     def __init__(self):
         self.saveDir = ""
+        self.chatSaved = True
 
         self.metricCol = []
         self.interactionID = 0
@@ -225,6 +256,11 @@ class ElaeApplication:
         self.editMenu = self.menu.add_cascade("Edit")
         self.editDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.editMenu)
         self.editDropdown.add_option("Toggle Edit Mode", self.toggleEdit)
+
+        self.editMenu = self.menu.add_cascade("Chat")
+        self.editDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.editMenu)
+        self.editDropdown.add_option("Save Chat", self.saveChat)
+        self.editDropdown.add_option("New Chat", self.newChat)
 
         self.trainMenu = self.menu.add_cascade("Train")
         self.trainDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.trainMenu)
@@ -261,7 +297,7 @@ class ElaeApplication:
         self.gradingFrame.columnconfigure(0, weight= 1)
         self.gradingFrame.rowconfigure(1, weight= 1)
 
-        self.interactionLabel = customtkinter.CTkLabel(self.gradingFrame, text = "Interact with Elae to see information here!", font = self.font)
+        self.interactionLabel = customtkinter.CTkLabel(self.gradingFrame, text = "Interact with your model to see information here!", font = self.font)
         self.interactionLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
 
         self.modelFrame = customtkinter.CTkScrollableFrame(self.gradingFrame)
