@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 
 elae-env/
-.env
+.venv
 
 transcripts/
 gpt2FinetunedLarge/
@@ -11,6 +11,9 @@ elaeOuter/
 elaeInner/
 0.26.0
 Elae.tria
+Art/
+build/
+dist/
 
 *.log
 *.tmp
