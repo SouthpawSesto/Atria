@@ -12,8 +12,8 @@ elaeInner/
 0.26.0
 Elae.tria
 Art/
-build/
-dist/
+AtriaApplication.build/
+
 temp.txt
 
 *.log
