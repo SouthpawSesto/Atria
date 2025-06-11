@@ -295,14 +295,15 @@ class ElaeApplication:
 
     def editPreferences(self):
         args = modelEditWindow.preferencesEditWindow().onClose()
-        self.userName = args[0]
-        print(f"\nUsername set to {self.userName}!")
-        self.newChat()
+        if args != []:
+            self.userName = args[0]
+            print(f"\nUsername set to {self.userName}!")
+            self.newChat()
 
     def __init__(self):
         self.saveDir = ""
         self.chatSaved = True
-        self.userName = "Alex"
+        self.userName = "User"
 
         self.loadUserConfig()
 

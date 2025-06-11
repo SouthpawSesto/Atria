@@ -1,6 +1,8 @@
 import customtkinter
 import os
 import json
+import GenericModel
+
 
 class modelEditWindow:
     def addModelButtonPress(self, * args):
@@ -17,7 +19,35 @@ class modelEditWindow:
     def browseModelDir(self):
         self.modelDir = customtkinter.filedialog.askdirectory(initialdir= f"{os.getcwd()}")
         self.dirTextVar.set(self.modelDir)
-        # self.dir.insert(0, self.modelDir)
+        self.model = GenericModel.Model(self.modelDir)
+
+        specialTokens = []
+
+        try:
+            for item in self.model.tokenizer.get_added_vocab():
+                specialTokens.append(item)
+            #Model turn tokens
+            self.turnTokenFrame = customtkinter.CTkFrame(self.root)
+            self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
+            self.turnTokenFrame.columnconfigure(1, weight = 1)
+            
+            self.inputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= specialTokens)
+            self.inputTokenCombobox.configure(state = "readonly")
+            self.inputTokenCombobox.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.inputTokenCombobox.set(self.model.inputToken)
+
+            self.outputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= specialTokens)
+            self.outputTokenCombobox.configure(state = "readonly")
+            self.outputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenCombobox.set(self.model.outputToken)
+
+            self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.smallFont)
+            self.inputTokenLabel.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.smallFont)
+            self.outputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        except:
+            pass
+
         self.root.focus()
 
     def onClose(self):
@@ -76,27 +106,28 @@ class modelEditWindow:
         self.contextTextBox = customtkinter.CTkTextbox(self.root, width = 200, height = 100, font = self.smallFont, wrap = "word")
         self.contextTextBox.grid(row = 2, column = 1, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
         self.contextTextBox.insert("0.0", self.modelStartContext)
+        try:
+            #Model turn tokens
+            self.turnTokenFrame = customtkinter.CTkFrame(self.root)
+            self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
+            self.turnTokenFrame.columnconfigure(1, weight = 1)
+            
+            self.inputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
+            self.inputTokenCombobox.configure(state = "readonly")
+            self.inputTokenCombobox.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.inputTokenCombobox.set(self.model.inputToken)
 
-        #Model turn tokens
-        self.turnTokenFrame = customtkinter.CTkFrame(self.root)
-        self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
-        self.turnTokenFrame.columnconfigure(1, weight = 1)
-        
-        self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.smallFont)
-        self.inputTokenLabel.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
+            self.outputTokenCombobox.configure(state = "readonly")
+            self.outputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenCombobox.set(self.model.outputToken)
 
-        self.inputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
-        self.inputTokenCombobox.configure(state = "readonly")
-        self.inputTokenCombobox.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
-        self.inputTokenCombobox.set(self.model.inputToken)
-
-        self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.smallFont)
-        self.outputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
-
-        self.outputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
-        self.outputTokenCombobox.configure(state = "readonly")
-        self.outputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
-        self.outputTokenCombobox.set(self.model.outputToken)
+            self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.smallFont)
+            self.inputTokenLabel.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.smallFont)
+            self.outputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+        except:
+            pass
 
         self.addModelButton = customtkinter.CTkButton(self.root, text="Confirm", command=self.addModelButtonPress, font = self.font)
         self.addModelButton.grid(column = 0, row = 5, sticky = "nsew", padx = 5, pady = 5)
