@@ -10,6 +10,8 @@ import ModelEditWindow
 import AtriaSaveLoad
 import pluginManager
 import os
+import sys
+from PIL import Image, ImageTk
 
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
@@ -113,11 +115,7 @@ class ElaeApplication:
     def newModel(self):
         self.saveDir = ""
         self.root.title("Atria")
-        # for model in self.modelCol:
-        #     print(f"Delete Model {model.name}")
-        #     self.deleteModel(model)
         while self.modelCol != []:
-            # print(f"Delete Model {self.modelCol[0].name}")
             self.deleteModel(self.modelCol[0])
         
         self.editMode = False
@@ -164,7 +162,11 @@ class ElaeApplication:
             timeStampString = timeStampString.replace("-", "_")
             cwd = os.getcwd()
             fileName = customtkinter.filedialog.asksaveasfilename(initialdir= f"{cwd}/transcripts", initialfile =f"{timeStampString}_Transcript.json", defaultextension= ".json", filetypes= (("JSON File", "*.json"),))
-            file = open(f"{fileName}", "w+")
+            try:
+                file = open(f"{fileName}", "w+")
+            except:
+                self.chatSaved = True
+                return
             file.write("{")
             for model in self.modelCol:
                 file.write(f"\n\"{model.name}\" : ")
@@ -212,7 +214,15 @@ class ElaeApplication:
         self.chatTextbox.configure(state = "normal")
         self.chatTextbox.delete("0.0", "end")
         self.chatTextbox.configure(state = "disabled")
-        self.write(f"Hi Alex, how can I help you?", "left")
+
+        # self.logoImage = Image.open("Art/AtriaLogo.png")
+        self.logoImage = Image.open("Art/AtriaLogo2.ico")
+        self.logoImage = self.logoImage.resize((100,100))
+        self.logoImage = ImageTk.PhotoImage(self.logoImage)
+        self.chatTextbox._textbox.image_create("end", image = self.logoImage)
+        self.chatTextbox.tag_add("center", "0.0", "end")
+
+        self.write(f"\n\nHi Alex, how can I help you?", "left")
 
         for model in self.modelCol:
             model.context = model.startingContext
@@ -241,6 +251,7 @@ class ElaeApplication:
         self.root.title("Atria")
         self.root.grid_columnconfigure(0, weight= 1)
         self.root.grid_rowconfigure(0, weight= 1)
+        self.root.iconbitmap("Art/AtriaLogo2.ico")
 
         #Menu
         self.menu = CTkMenuBar.CTkMenuBar(self.root, bg_color = "gray17")
@@ -281,7 +292,9 @@ class ElaeApplication:
         self.chatTextbox.grid(column = 0, columnspan = 2, row = 0, sticky = "nsew")
         self.chatTextbox.tag_config("right", justify = "right")
         self.chatTextbox.tag_config("left", justify = "left")
-        self.write(f"Hi Alex, how can I help you?", "left")
+        self.chatTextbox.tag_config("center", justify = "center")
+
+        self.newChat()
 
         #Entry box and button
         self.entry = customtkinter.CTkEntry(self.mainFrame, placeholder_text= "Type anything to Elae!", font = self.font)
@@ -326,10 +339,18 @@ class ElaeApplication:
         #Example of running plugin
         self.pluginManager.runHook("__init__", self)
 
+        try:
+            self.newModel()
+            self.saveDir = sys.argv[1]
+            AtriaSaveLoad.loadModel(self, sys.argv[1])
+        except:
+            pass
+
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.focus()
         self.root.mainloop()
 
 if __name__ == "__main__":
+
     torch.cuda.empty_cache()
     applicationWindow = ElaeApplication()

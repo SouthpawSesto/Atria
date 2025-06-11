@@ -5,7 +5,7 @@ call .venv\Scripts\activate.bat
 
 nuitka AtriaApplication.py ^
     --windows-console-mode=disable^
-    --windows-icon-from-ico=Art\AtriaLogo.ico^
+    --windows-icon-from-ico=Art\AtriaLogo2.ico^
     --verbose ^
     --show-progress ^
     --enable-plugin=tk-inter

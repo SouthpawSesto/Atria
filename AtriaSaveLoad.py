@@ -40,9 +40,9 @@ def saveModel(application):
 
     application.root.title(f"Atria\t{application.saveDir}")
 
-def loadModel(application):
-    # application.toggleEdit()
-    application.saveDir = customtkinter.filedialog.askopenfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),), initialdir="./")
+def loadModel(application, dir = None):
+    if dir == None or dir == "":
+        application.saveDir = customtkinter.filedialog.askopenfilename(defaultextension=".tria", filetypes=(("Atria File", "*.tria"),), initialdir="./")
     file = open(application.saveDir, "r")
     try:
         file = json.load(file)
