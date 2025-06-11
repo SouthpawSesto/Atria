@@ -3,7 +3,7 @@ import torch
 import datetime
 
 import GenericModel
-import ModelEditWindow
+import modelEditWindow
 
 class metricSlider:
     def __init__(self, caller, text):
@@ -57,7 +57,7 @@ class metricSlider:
             self.editMode = True
 
     def editButtonPress(self):
-        name = ModelEditWindow.metricEditWindow().onClose()[0]
+        name = modelEditWindow.metricEditWindow().onClose()[0]
         self.name  = name
         self.sliderLabel.configure(text = f"{self.name}")
 
@@ -79,7 +79,7 @@ class modelWrapper:
 
     def addMetric(self, name = None):
         if name == None:
-            name = ModelEditWindow.metricEditWindow().onClose()[0]
+            name = modelEditWindow.metricEditWindow().onClose()[0]
 
         metricSlider(self, f"{name}")
         self.addMetricButton.grid(column = 0, row = len(self.metricCol) + 2, sticky = "nsew", padx = 5, pady = 5)
@@ -144,7 +144,7 @@ class modelWrapper:
     
     def editButtonPress(self, editArgs = None):
         if editArgs == None:
-            editArgs = ModelEditWindow.modelEditWindow(self).onClose()
+            editArgs = modelEditWindow.modelEditWindow(self).onClose()
         else:
             self.name = editArgs[0]
             self.modelDir = editArgs[1]

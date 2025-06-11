@@ -1,5 +1,6 @@
 import customtkinter
 import os
+import json
 
 class modelEditWindow:
     def addModelButtonPress(self, * args):
@@ -172,5 +173,58 @@ class yesNoWindow:
         self.addMetricButton.grid(column = 0, row = 2, sticky = "nsew", padx = 5, pady = 5)
         self.addMetricButton = customtkinter.CTkButton(self.root, text="Keep Current Model", command=self.noButtonPress, font = self.font)
         self.addMetricButton.grid(column = 1, row = 2, sticky = "nsew", padx = 5, pady = 5)
+
+        self.root.wait_window()
+
+class preferencesEditWindow:
+    def saveButtonPress(self, * args):
+        self.returnArgs = []
+        self.returnArgs.append(self.name.get())
+
+        file = open("userConfig.config", "w+")
+        file.write("{")
+        file.write(f"\n\"username\" : \"{self.name.get()}\"")
+        file.write("\n}")
+        file.close()
+        self.onClose()
+    
+    def onClose(self):
+        self.root.destroy()
+        return self.returnArgs
+
+    def __init__(self, *args):
+        self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
+        self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
+
+        self.returnArgs = []
+
+        self.root = customtkinter.CTkToplevel()
+        self.root.geometry("400x100")
+        self.root.protocol("WM_DELETE_WINDOW", self.onClose)
+        self.root.title("User Config")
+        self.root.focus()
+        self.root.columnconfigure(1, weight= 1)
+        self.root.bind("<Return>", self.saveButtonPress)
+
+        self.userName = ""
+
+        try:
+            file = open("userConfig.config", "r")
+            file = json.load(file)
+            self.userName = file["username"]
+        except:
+            print("Could not open user config!")
+
+        self.nameLabel = customtkinter.CTkLabel(self.root, text = "User Name", font = self.font)
+        self.nameLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
+
+        self.nameTextVar = customtkinter.StringVar(value = f"{self.userName}")
+        self.name = customtkinter.CTkEntry(self.root, placeholder_text= "Enter your name!", textvariable = self.nameTextVar, font = self.font)
+        self.name.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+        self.name.bind("<Return>", self.saveButtonPress)
+        self.name.focus()
+
+        self.saveButton = customtkinter.CTkButton(self.root, text="Save Metric", command=self.saveButtonPress, font = self.font)
+        self.saveButton.grid(column = 0, row = 2, sticky = "nsew", padx = 5, pady = 5)
 
         self.root.wait_window()

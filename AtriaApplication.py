@@ -1,17 +1,18 @@
+#External Libraries
 import customtkinter
 import CTkMenuBar
 import torch
-# from transformers import AutoModelForCausalLM, AutoTokenizer
 import datetime
-
-# import GenericModel
-import modelWrapper
-import ModelEditWindow
-import AtriaSaveLoad
-import pluginManager
 import os
 import sys
+import json
 from PIL import Image, ImageTk
+
+#Internal Modules
+import modelWrapper
+import modelEditWindow
+import AtriaSaveLoad
+import pluginManager
 
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
@@ -97,7 +98,7 @@ class ElaeApplication:
         self.nextInteractionButton.configure(state = "normal")
 
     def addModelButtonPress(self):
-        editArgs = ModelEditWindow.modelEditWindow().onClose()
+        editArgs = modelEditWindow.modelEditWindow().onClose()
         if editArgs != []:
             modelWrapper.modelWrapper(self, f"{editArgs[0]}", editArgs[1])
             self.modelCol[-1].context = editArgs[2]
@@ -143,7 +144,7 @@ class ElaeApplication:
 
         self.write(f"Finished Training", sys = True)
 
-        yesNo = ModelEditWindow.yesNoWindow().onClose()
+        yesNo = modelEditWindow.yesNoWindow().onClose()
         if yesNo == "Yes":
             i = 0
             for model in self.modelCol:
@@ -264,7 +265,7 @@ class ElaeApplication:
         self.chatTextbox._textbox.image_create("end", image = self.logoImage)
         self.chatTextbox.tag_add("center", "0.0", "end")
 
-        self.write(f"\n\nHi Alex, how can I help you?", "left")
+        self.write(f"\n\nHi {self.userName}, how can I help you?", "left")
 
         for model in self.modelCol:
             model.context = model.startingContext
@@ -280,9 +281,30 @@ class ElaeApplication:
             for metric in model.metricCol:
                 metric.slider.set(0)
 
+    def loadUserConfig(self):
+        try:
+            file = open("userConfig.config", "r")
+            file = json.load(file)
+            self.userName = file["username"]
+        except:
+            file = open("userConfig.config", "w+")
+            file.write("{")
+            file.write(f"\n\"username\" : \"{self.userName}\"")
+            file.write("\n}")
+            file.close()
+
+    def editPreferences(self):
+        args = modelEditWindow.preferencesEditWindow().onClose()
+        self.userName = args[0]
+        print(f"\nUsername set to {self.userName}!")
+        self.newChat()
+
     def __init__(self):
         self.saveDir = ""
         self.chatSaved = True
+        self.userName = "Alex"
+
+        self.loadUserConfig()
 
         self.metricCol = []
         self.interactionID = 0
@@ -313,8 +335,8 @@ class ElaeApplication:
         self.fileDropdown.add_option("New Model", self.newModel)
         self.fileDropdown.add_option("Save Model", self.saveModel)
         self.fileDropdown.add_option("Save Model As...", self.saveModelAs)
-        # self.fileDropdown.add_option("Train and Save Model", self.saveAndTrain)
         self.fileDropdown.add_option("Load Model", self.loadModel)
+        self.fileDropdown.add_option("Preferences...", self.editPreferences)
 
         self.editMenu = self.menu.add_cascade("Edit")
         self.editDropdown = CTkMenuBar.CustomDropdownMenu(widget=self.editMenu)
@@ -349,7 +371,7 @@ class ElaeApplication:
         self.newChat()
 
         #Entry box and button
-        self.entry = customtkinter.CTkEntry(self.mainFrame, placeholder_text= "Type anything to Elae!", font = self.font)
+        self.entry = customtkinter.CTkEntry(self.mainFrame, placeholder_text= "Type anything to your model!", font = self.font)
         self.entry.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
         self.entry.bind("<Return>", self.buttonPress)
 
