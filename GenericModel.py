@@ -92,6 +92,9 @@ class Model:
     #on the passed dataset using the custom "Atria Dataset" class made to wrap
     #around user data and pass into hugginface's trainer object
     def train(self, transcriptFile, outputDir):
+        returnArgs = None
+
+        torch.cuda.empty_cache()
         trainingArgs = TrainingArguments(
             output_dir= outputDir,
             # evaluation_strategy= "epoch",
@@ -114,9 +117,14 @@ class Model:
             file = json.load(file)
         except:
             print(f"Could not open file {transcriptFile}")
-
+            self.parent.write(f"Could not open file {transcriptFile}", sys = True)
+            self.parent.root.update()
+            return
+        index = 1
         for metric in file[f"{self.name}"][f"{self.name}_interaction_0"]["metrics"]:
             print(f"Training metric: {metric}")
+            self.parent.write(f"Training metric ({index}/{len(file[f"{self.name}"][f"{self.name}_interaction_0"]["metrics"])}): {metric}", sys = True)
+            self.parent.root.update()
             trainer = Trainer(
                 model = self.model,
                 args = trainingArgs,
@@ -130,6 +138,7 @@ class Model:
             timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
             timeStampString.replace("-", "_")
             outputDirString = f"{outputDir}/{self.name}_{timeStampString}"
+            returnArgs = outputDirString
             # print(f"Output Directory: {outputDirString}")
 
             try:
@@ -159,7 +168,9 @@ class Model:
 
                 self.model = AutoModelForCausalLM.from_pretrained(f"{self.name}_{timeStampString}")
                 self.model.config.pad_token_id = self.tokenizer.eos_token_id
-        pass
+
+            index += 1
+        return returnArgs
 
     def __init__(self, modelDir):
         self.modelDir = modelDir
@@ -174,3 +185,4 @@ class Model:
         self.context =  ""
         self.inputToken = ""
         self.outputToken = ""
+        self.parent = None

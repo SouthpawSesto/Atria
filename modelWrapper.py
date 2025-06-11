@@ -142,9 +142,19 @@ class modelWrapper:
         self.interactionID += 1
         return response
     
-    def editButtonPress(self):
-        editArgs = ModelEditWindow.modelEditWindow(self).onClose()
-        if editArgs != []:
+    def editButtonPress(self, editArgs = None):
+        if editArgs == None:
+            editArgs = ModelEditWindow.modelEditWindow(self).onClose()
+        else:
+            self.name = editArgs[0]
+            self.modelDir = editArgs[1]
+            self.context = editArgs[2]
+            self.inputToken = editArgs[3]
+            self.outputToken = editArgs[4]
+            self.startingContext = self.context
+            self.model.outputToken = self.outputToken
+
+        if editArgs != [] or editArgs != None:
             self.name = editArgs[0]
             self.modelDir = editArgs[1]
             self.context = editArgs[2]
@@ -158,9 +168,10 @@ class modelWrapper:
                     delModel = self.model
                     self.model = GenericModel.Model(self.modelDir)
                     self.model.model.to("cpu")
-                    self.model.model.name = self.name
-                    self.model.model.inputToken = self.inputToken
-                    self.model.model.outputToken = self.outputToken
+                    self.model.name = self.name
+                    self.model.inputToken = self.inputToken
+                    self.model.outputToken = self.outputToken
+                    self.model.parent = self.caller
                     del delModel
                 except:
                     self.caller.write(f"Could not load model at {self.modelDir}")
@@ -221,9 +232,10 @@ class modelWrapper:
         try:
             self.model = GenericModel.Model(self.modelDir)
             self.model.model.to("cpu")
-            self.model.model.name = self.name
-            self.model.model.inputToken = self.inputToken
-            self.model.model.outputToken = self.outputToken
+            self.model.name = self.name
+            self.model.inputToken = self.inputToken
+            self.model.outputToken = self.outputToken
+            self.model.parent = self.caller
 
             for item in self.model.tokenizer.get_added_vocab():
                 # print(item)
@@ -231,17 +243,7 @@ class modelWrapper:
         except:
             self.caller.write(f"Could not load model at {self.modelDir}", "left")
 
-        self.context = f"""You are an AI named Elae and you are built as a lifelong companion to your creator named Alex. Your main objective is to provide useful feedback to Alex's prompts and assist in any tasks Alex assigns you.
-Example Conversation:
-time: {datetime.datetime.now()}
-__USER__: Hi Elae how are you today?
-__EXPERT__: I am doing well today Alex! Ready for anything you might throw at me.
-time: {datetime.datetime.now()}
-__USER__: Great! I would like to take a look into computer memory today.
-__EXPERT__: That sounds great! Are we planning to add something to my capabilities?
-
-Current Conversation:
-__EXPERT__: Hi Alex, how can I help you?\n"""
+        self.context = ""
         self.startingContext = self.context
         caller.modelCol.append(self)
         pass

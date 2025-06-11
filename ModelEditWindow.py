@@ -138,3 +138,39 @@ class metricEditWindow:
         self.addMetricButton.grid(column = 0, row = 2, sticky = "nsew", padx = 5, pady = 5)
 
         self.root.wait_window()
+
+class yesNoWindow:
+    def yesButtonPress(self, * args):
+        self.returnArgs = "Yes"
+        self.onClose()
+
+    def noButtonPress(self, * args):
+        self.returnArgs = "No"
+        self.onClose()
+    
+    def onClose(self):
+        self.root.destroy()
+        return self.returnArgs
+
+    def __init__(self, *args):
+        self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
+        self.smallFont = customtkinter.CTkFont(family= "Segoe UI", size= 14)
+
+        self.returnArgs = None
+
+        self.root = customtkinter.CTkToplevel()
+        self.root.geometry("400x100")
+        self.root.protocol("WM_DELETE_WINDOW", self.onClose)
+        self.root.title("Current Model Update")
+        self.root.focus()
+        self.root.columnconfigure(1, weight= 1)
+
+        self.nameLabel = customtkinter.CTkLabel(self.root, text = "Update Current Model?", font = self.font)
+        self.nameLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
+
+        self.addMetricButton = customtkinter.CTkButton(self.root, text="Yes", command=self.yesButtonPress, font = self.font)
+        self.addMetricButton.grid(column = 0, row = 2, sticky = "nsew", padx = 5, pady = 5)
+        self.addMetricButton = customtkinter.CTkButton(self.root, text="Keep Current Model", command=self.noButtonPress, font = self.font)
+        self.addMetricButton.grid(column = 1, row = 2, sticky = "nsew", padx = 5, pady = 5)
+
+        self.root.wait_window()

@@ -15,7 +15,10 @@ from PIL import Image, ImageTk
 
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
-    def write(self, text, justify = "left"):
+    def write(self, text, justify = "left", sys = False):
+        if sys == True:
+            self.chatTextbox._textbox.image_create("end", image = self.sysImage)
+
         self.chatTextbox.configure(state = "normal")
         self.chatTextbox.insert("end", f"{text}\n", justify)
         self.chatTextbox.configure(state = "disabled")
@@ -99,16 +102,47 @@ class ElaeApplication:
 
     #Save and train the model. User selects data to use in training set.
     def saveAndTrain(self):
+        self.newChat()
+
+        self.chatTextbox.configure(state = "normal")
+        self.chatTextbox.delete("0.0", "end")
+        self.chatTextbox.configure(state = "disabled")
+
+        self.chatTextbox._textbox.image_create("end", image = self.logoImage)
+        self.chatTextbox.tag_add("center", "0.0", "end")
+        self.write(f"\n")
+
         cwd = os.getcwd()
         transcriptFile = customtkinter.filedialog.askopenfilename(initialdir = f"{cwd}/transcripts",title = f"Trianing File", defaultextension= ".json", filetypes=(("JSON File", "*.json"),))
         outputDir = []
         for model in self.modelCol:
             outputDir.append(customtkinter.filedialog.askdirectory(initialdir= f"{cwd}", title = f"Output directory for model: {model.name}"))
+
+        newModelDirectories = []
         i = 0
         for model in self.modelCol:
-            print(f"Training Model: {model.name}")
-            model.model.train(transcriptFile, outputDir[i])
+            self.write(f"Training Model: {model.name}", sys = True)
+            self.root.update()
+            newModelDirectories.append(model.model.train(transcriptFile, outputDir[i]))
+            # newModelDirectories.append("Test")
+            self.write(f"Finished Training Model: {model.name}", sys = True)
+            self.root.update()
             i += 1
+
+        self.write(f"Finished Training", sys = True)
+
+        yesNo = ModelEditWindow.yesNoWindow().onClose()
+        if yesNo == "Yes":
+            i = 0
+            for model in self.modelCol:
+                editArgs = []
+                editArgs.append(model.name)
+                editArgs.append(newModelDirectories[i])
+                editArgs.append(model.context)
+                editArgs.append(model.inputToken)
+                editArgs.append(model.outputToken)
+                model.editButtonPress(editArgs)
+                i += 1
 
         pass
     
@@ -215,10 +249,6 @@ class ElaeApplication:
         self.chatTextbox.delete("0.0", "end")
         self.chatTextbox.configure(state = "disabled")
 
-        # self.logoImage = Image.open("Art/AtriaLogo.png")
-        self.logoImage = Image.open("Art/AtriaLogo2.ico")
-        self.logoImage = self.logoImage.resize((100,100))
-        self.logoImage = ImageTk.PhotoImage(self.logoImage)
         self.chatTextbox._textbox.image_create("end", image = self.logoImage)
         self.chatTextbox.tag_add("center", "0.0", "end")
 
@@ -234,6 +264,9 @@ class ElaeApplication:
             self.backInteractionButton.configure(state = "disabled")
             self.nextInteractionButton.configure(state = "disabled")
             self.interactionLabel.configure(text = "Interact with your model to see information here!")
+
+            for metric in model.metricCol:
+                metric.slider.set(0)
 
     def __init__(self):
         self.saveDir = ""
@@ -252,6 +285,13 @@ class ElaeApplication:
         self.root.grid_columnconfigure(0, weight= 1)
         self.root.grid_rowconfigure(0, weight= 1)
         self.root.iconbitmap("Art/AtriaLogo2.ico")
+
+        self.sysImage = Image.open("Art/AtriaLogo2.ico")
+        self.sysImage = self.sysImage.resize((25,25))
+        self.sysImage = ImageTk.PhotoImage(self.sysImage)
+        self.logoImage = Image.open("Art/AtriaLogo2.ico")
+        self.logoImage = self.logoImage.resize((100,100))
+        self.logoImage = ImageTk.PhotoImage(self.logoImage)
 
         #Menu
         self.menu = CTkMenuBar.CTkMenuBar(self.root, bg_color = "gray17")
