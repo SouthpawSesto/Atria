@@ -30,8 +30,14 @@ class ElaeApplication:
         feedForwardText = text
 
         for model in self.modelCol:
+            #Example of running plugin
+            self.pluginManager.runHook("__on_model_query__", self)
+
             feedForwardText = model.addInteraction(feedForwardText)
             self.write(feedForwardText, "left")
+
+            #Example of running plugin
+            self.pluginManager.runHook("__on_model_output__", self)
 
         if self.interactionIndex > 0:
             self.backInteractionButton.configure(state = "normal")
@@ -44,11 +50,17 @@ class ElaeApplication:
         self.entry.delete(0, "end")
         self.write(text, "right")
 
+        #Example of running plugin
+        self.pluginManager.runHook("__preprocessing__", self)
+
         self.userQuery(text)
 
         for model in self.modelCol:
             model.interactionIndex = self.interactionIndex
             model.update()
+
+        #Example of running plugin
+        self.pluginManager.runHook("__postprocessing__", self)
 
         self.interactionLabel.configure(text = f"Interaction {self.interactionIndex}")
 
@@ -376,8 +388,6 @@ class ElaeApplication:
         #Load plugins
         self.pluginManager = pluginManager.pluginManager("plugins")
         self.pluginManager.loadPlugins()
-        #Example of running plugin
-        self.pluginManager.runHook("__init__", self)
 
         try:
             self.newModel()
@@ -388,7 +398,14 @@ class ElaeApplication:
 
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         self.root.focus()
+
+        #Example of running plugin
+        self.pluginManager.runHook("__init__", self)
+
         self.root.mainloop()
+
+        #Example of running plugin
+        self.pluginManager.runHook("__close__", self)
 
 if __name__ == "__main__":
 
