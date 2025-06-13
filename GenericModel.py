@@ -122,8 +122,9 @@ class Model:
             return
         index = 1
         for metric in file[f"{self.name}"][f"{self.name}_interaction_0"]["metrics"]:
-            print(f"Training metric: {metric}")
-            self.parent.write(f"Training metric ({index}/{len(file[f"{self.name}"][f"{self.name}_interaction_0"]["metrics"])}): {metric}", sys = True)
+            # print(f"Training metric: {metric}")
+            metricTotal = len(file[f"{self.name}"][f"{self.name}_interaction_0"]["metrics"])
+            self.parent.write(f"Training metric ({index}/{metricTotal}): {metric}", sys = True)
             self.parent.root.update()
             trainer = Trainer(
                 model = self.model,
