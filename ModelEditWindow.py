@@ -212,7 +212,9 @@ class preferencesEditWindow:
         self.returnArgs = []
         self.returnArgs.append(self.name.get())
 
-        file = open("userConfig.config", "w+")
+        self.baseDir = args[0].baseDir
+
+        file = open(self.baseDir + "userConfig.config", "w+")
         file.write("{")
         file.write(f"\n\"username\" : \"{self.name.get()}\"")
         file.write("\n}")

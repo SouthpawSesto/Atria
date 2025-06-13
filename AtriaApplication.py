@@ -293,7 +293,7 @@ class ElaeApplication:
             file.close()
 
     def editPreferences(self):
-        args = modelEditWindow.preferencesEditWindow().onClose()
+        args = modelEditWindow.preferencesEditWindow(self).onClose()
         if args != []:
             self.userName = args[0]
             print(f"\nUsername set to {self.userName}!")
