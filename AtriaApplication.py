@@ -125,11 +125,10 @@ class ElaeApplication:
         self.chatTextbox.tag_add("center", "0.0", "end")
         self.write(f"\n")
 
-        cwd = os.getcwd()
-        transcriptFile = customtkinter.filedialog.askopenfilename(initialdir = f"{cwd}/transcripts",title = f"Trianing File", defaultextension= ".json", filetypes=(("JSON File", "*.json"),))
+        transcriptFile = customtkinter.filedialog.askopenfilename(initialdir = f"{self.baseDir}transcripts",title = f"Trianing File", defaultextension= ".json", filetypes=(("JSON File", "*.json"),))
         outputDir = []
         for model in self.modelCol:
-            outputDir.append(customtkinter.filedialog.askdirectory(initialdir= f"{cwd}", title = f"Output directory for model: {model.name}"))
+            outputDir.append(customtkinter.filedialog.askdirectory(initialdir= f"{self.baseDir}", title = f"Output directory for model: {model.name}"))
 
         newModelDirectories = []
         i = 0
@@ -207,8 +206,8 @@ class ElaeApplication:
             timeStamp = datetime.datetime.now()
             timeStampString = f"{timeStamp.date()}_{timeStamp.hour}_{timeStamp.minute}"
             timeStampString = timeStampString.replace("-", "_")
-            cwd = os.getcwd()
-            fileName = customtkinter.filedialog.asksaveasfilename(initialdir= f"{cwd}/transcripts", initialfile =f"{timeStampString}_Transcript.json", defaultextension= ".json", filetypes= (("JSON File", "*.json"),))
+
+            fileName = customtkinter.filedialog.asksaveasfilename(initialdir= f"{self.baseDir}transcripts", initialfile =f"{timeStampString}_Transcript.json", defaultextension= ".json", filetypes= (("JSON File", "*.json"),))
             try:
                 file = open(f"{fileName}", "w+")
             except:
@@ -283,11 +282,11 @@ class ElaeApplication:
 
     def loadUserConfig(self):
         try:
-            file = open("userConfig.config", "r")
+            file = open(self.baseDir + "userConfig.config", "r")
             file = json.load(file)
             self.userName = file["username"]
         except:
-            file = open("userConfig.config", "w+")
+            file = open(self.baseDir + "userConfig.config", "w+")
             file.write("{")
             file.write(f"\n\"username\" : \"{self.userName}\"")
             file.write("\n}")
@@ -299,19 +298,29 @@ class ElaeApplication:
             self.userName = args[0]
             print(f"\nUsername set to {self.userName}!")
             self.newChat()
+    
+    def getBasePath(self):
+        if getattr(sys, "frozen", False):
+            return os.path.dirname(sys.executable)
+        else:
+            return os.path.dirname(os.path.abspath(__file__))
 
     def __init__(self):
         self.saveDir = ""
         self.chatSaved = True
         self.userName = "User"
 
-        self.loadUserConfig()
-
         self.metricCol = []
         self.interactionID = 0
         self.interactionIndex = 0
         self.modelCol = []
         self.editMode = True
+        self.baseDir = self.getBasePath()
+        self.baseDir = self.baseDir.replace("\\", "/")
+        self.baseDir += "/"
+
+        self.loadUserConfig()
+
 
         #Root window
         self.root = customtkinter.CTk()
@@ -319,12 +328,12 @@ class ElaeApplication:
         self.root.title("Atria")
         self.root.grid_columnconfigure(0, weight= 1)
         self.root.grid_rowconfigure(0, weight= 1)
-        self.root.iconbitmap("Art/AtriaLogo2.ico")
+        self.root.iconbitmap(self.baseDir + "Art/AtriaLogo2.ico")
 
-        self.sysImage = Image.open("Art/AtriaLogo2.ico")
+        self.sysImage = Image.open(self.baseDir + "Art/AtriaLogo2.ico")
         self.sysImage = self.sysImage.resize((25,25))
         self.sysImage = ImageTk.PhotoImage(self.sysImage)
-        self.logoImage = Image.open("Art/AtriaLogo2.ico")
+        self.logoImage = Image.open(self.baseDir + "Art/AtriaLogo2.ico")
         self.logoImage = self.logoImage.resize((100,100))
         self.logoImage = ImageTk.PhotoImage(self.logoImage)
 
@@ -371,6 +380,9 @@ class ElaeApplication:
 
         self.newChat()
 
+        # self.write(self.getBasePath())
+        # self.write(self.baseDir)
+
         #Entry box and button
         self.entry = customtkinter.CTkEntry(self.mainFrame, placeholder_text= "Type anything to your model!", font = self.font)
         self.entry.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
@@ -409,7 +421,7 @@ class ElaeApplication:
         self.nextInteractionButton.configure(state = "disabled")
 
         #Load plugins
-        self.pluginManager = pluginManager.pluginManager("plugins")
+        self.pluginManager = pluginManager.pluginManager(self.baseDir + "plugins")
         self.pluginManager.loadPlugins()
 
         try:

@@ -18,13 +18,16 @@ class pluginManager:
         pass
 
     def runHook(self, hookName, *args, **kwargs):
-        results = []
-        for plugin in self.plugins:
-            hook = getattr(plugin, hookName, None)
-            
-            if callable(hook):
-                result = hook(*args, **kwargs)
-                results.append(result)
+        try:
+            results = []
+            for plugin in self.plugins:
+                hook = getattr(plugin, hookName, None)
+                
+                if callable(hook):
+                    result = hook(*args, **kwargs)
+                    results.append(result)
+        except:
+            pass
 
     def __init__(self, pluginDir):
         self.pluginDir = pluginDir
