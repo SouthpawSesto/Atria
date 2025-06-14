@@ -345,7 +345,7 @@ class ElaeApplication:
         self.fileDropdown.add_option("New Model", self.newModel)
         self.fileDropdown.add_option("Save Model", self.saveModel)
         self.fileDropdown.add_option("Save Model As...", self.saveModelAs)
-        self.fileDropdown.add_option("Load Model", self.loadModel)
+        self.fileDropdown.add_option("Open Model", self.loadModel)
         self.fileDropdown.add_option("Preferences...", self.editPreferences)
 
         self.editMenu = self.menu.add_cascade("Edit")

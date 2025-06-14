@@ -2,6 +2,7 @@ import customtkinter
 import os
 import json
 import GenericModel
+import shutil
 
 
 class modelEditWindow:
@@ -12,7 +13,6 @@ class modelEditWindow:
         self.returnArgs.append(self.contextTextBox.get("0.0", "end"))
         self.returnArgs.append(self.inputTokenCombobox.get())
         self.returnArgs.append(self.outputTokenCombobox.get())
-        # print(self.contextTextBox.get("0.0", "end"))
 
         self.onClose()
     
@@ -21,38 +21,63 @@ class modelEditWindow:
         self.dirTextVar.set(self.modelDir)
         self.model = GenericModel.Model(self.modelDir)
 
+        self.refreshTokens()
+
+    def refreshTokens(self):
         specialTokens = []
 
         try:
             for item in self.model.tokenizer.get_added_vocab():
                 specialTokens.append(item)
             #Model turn tokens
-            self.turnTokenFrame = customtkinter.CTkFrame(self.root)
-            self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
-            self.turnTokenFrame.columnconfigure(1, weight = 1)
-            
             self.inputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= specialTokens)
             self.inputTokenCombobox.configure(state = "readonly")
-            self.inputTokenCombobox.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.inputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
             self.inputTokenCombobox.set(self.model.inputToken)
 
             self.outputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= specialTokens)
             self.outputTokenCombobox.configure(state = "readonly")
-            self.outputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenCombobox.grid(row = 2, column = 1, sticky = "nsew", padx = 5, pady = 5)
             self.outputTokenCombobox.set(self.model.outputToken)
 
-            self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.smallFont)
-            self.inputTokenLabel.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
-            self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.smallFont)
-            self.outputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.TokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text = "New Token", font = self.font)
+            self.TokenLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
+            self.TokenTextVar = customtkinter.StringVar(value = f"New Model Token")
+            self.TokenEntry = customtkinter.CTkEntry(self.turnTokenFrame, textvariable= self.TokenTextVar, font = self.font)
+            self.TokenEntry.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.addTokenButton = customtkinter.CTkButton(self.turnTokenFrame, text="Add Token", command=self.addTokenButtonPress, font = self.font)
+            self.addTokenButton.grid(column = 2, row = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.TokenLabelWarning = customtkinter.CTkLabel(self.turnTokenFrame, text = "Cannot Be Undone!", font = self.font)
+            self.TokenLabelWarning.grid(row = 0, column = 3, sticky = "nw", padx = 5, pady = 5)
+
+            self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.font)
+            self.inputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.font)
+            self.outputTokenLabel.grid(row = 2, column = 0, sticky = "nsew", padx = 5, pady = 5)
         except:
             pass
-
-        self.root.focus()
 
     def onClose(self):
         self.root.destroy()
         return self.returnArgs
+
+    def addTokenButtonPress(self):
+        temp = f"{self.TokenTextVar.get()}"
+        self.model.tokenizer.add_special_tokens({"additional_special_tokens": [f"{temp}"]})
+        self.model.model.resize_token_embeddings(len(self.model.tokenizer))
+        # self.model.tokenizer.save_pretrained(f"{self.modelDir}")
+        self.model.model.save_pretrained(f"{self.modelDir}_tokenized")
+        self.model.tokenizer.save_pretrained(f"{self.modelDir}_tokenized")
+        self.model = GenericModel.Model(f"{self.modelDir}_tokenized")
+        self.model.model.save_pretrained(f"{self.modelDir}")
+        self.model.tokenizer.save_pretrained(f"{self.modelDir}")
+        self.model = GenericModel.Model(f"{self.modelDir}")
+        shutil.rmtree(f"{self.modelDir}_tokenized")
+
+        self.TokenTextVar.set(value = "Token Added!")
+
+        self.refreshTokens()
+        pass
 
     def __init__(self, model = None):
         self.font = customtkinter.CTkFont(family= "Segoe UI", size= 18)
@@ -68,7 +93,6 @@ class modelEditWindow:
         self.root.focus()
         self.root.columnconfigure(1, weight= 1)
         self.root.rowconfigure(2, weight= 1)
-        # self.root.bind("<Return>", self.addModelButtonPress)
 
         #Model Name
         self.nameLabel = customtkinter.CTkLabel(self.root, text = "Name", font = self.font)
@@ -79,8 +103,6 @@ class modelEditWindow:
             self.nameTextVar = customtkinter.StringVar(value = f"{self.model.name}")
         self.name = customtkinter.CTkEntry(self.root, textvariable= self.nameTextVar, font = self.font)
         self.name.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
-        # self.name.bind("<Return>", self.addModelButtonPress)
-        self.name.focus()
 
         #Model Directory
         self.modelDir = ""
@@ -94,7 +116,6 @@ class modelEditWindow:
         self.dir.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
         self.browseModelButton = customtkinter.CTkButton(self.root, text="Browse", command=self.browseModelDir, font = self.font)
         self.browseModelButton.grid(row = 1, column = 2, sticky = "nsew", padx = 5, pady = 5)
-        # self.dir.bind("<Return>", self.addModelButtonPress)
 
         #Model Starting Context
         self.contextLabel = customtkinter.CTkLabel(self.root, text = "Starting Context", font = self.font)
@@ -106,32 +127,43 @@ class modelEditWindow:
         self.contextTextBox = customtkinter.CTkTextbox(self.root, width = 200, height = 100, font = self.smallFont, wrap = "word")
         self.contextTextBox.grid(row = 2, column = 1, columnspan = 2, sticky = "nsew", padx = 5, pady = 5)
         self.contextTextBox.insert("0.0", self.modelStartContext)
+
+        #Model turn tokens
+        self.turnTokenFrame = customtkinter.CTkFrame(self.root)
+        self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
+        self.turnTokenFrame.columnconfigure(1, weight = 1)
+
         try:
-            #Model turn tokens
-            self.turnTokenFrame = customtkinter.CTkFrame(self.root)
-            self.turnTokenFrame.grid(row = 4, column = 0, columnspan = 3, sticky = "nsew", padx = 5, pady = 5)
-            self.turnTokenFrame.columnconfigure(1, weight = 1)
-            
             self.inputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
             self.inputTokenCombobox.configure(state = "readonly")
-            self.inputTokenCombobox.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.inputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
             self.inputTokenCombobox.set(self.model.inputToken)
 
             self.outputTokenCombobox = customtkinter.CTkComboBox(self.turnTokenFrame, width = 100, values= self.model.specialTokens)
             self.outputTokenCombobox.configure(state = "readonly")
-            self.outputTokenCombobox.grid(row = 1, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenCombobox.grid(row = 2, column = 1, sticky = "nsew", padx = 5, pady = 5)
             self.outputTokenCombobox.set(self.model.outputToken)
 
-            self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.smallFont)
-            self.inputTokenLabel.grid(row = 0, column = 0, sticky = "nsew", padx = 5, pady = 5)
-            self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.smallFont)
-            self.outputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.TokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text = "New Token", font = self.font)
+            self.TokenLabel.grid(row = 0, column = 0, sticky = "n", padx = 5, pady = 5)
+            self.TokenTextVar = customtkinter.StringVar(value = f"New Model Token")
+            self.TokenEntry = customtkinter.CTkEntry(self.turnTokenFrame, textvariable= self.TokenTextVar, font = self.font)
+            self.TokenEntry.grid(row = 0, column = 1, sticky = "nsew", padx = 5, pady = 5)
+            self.addTokenButton = customtkinter.CTkButton(self.turnTokenFrame, text="Add Token", command=self.addTokenButtonPress, font = self.font)
+            self.addTokenButton.grid(column = 2, row = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.TokenLabelWarning = customtkinter.CTkLabel(self.turnTokenFrame, text = "Cannot Be Undone!", font = self.font)
+            self.TokenLabelWarning.grid(row = 0, column = 3, sticky = "nw", padx = 5, pady = 5)
+
+            self.inputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Input Token", font= self.font)
+            self.inputTokenLabel.grid(row = 1, column = 0, sticky = "nsew", padx = 5, pady = 5)
+            self.outputTokenLabel = customtkinter.CTkLabel(self.turnTokenFrame, text= "Output Token", font= self.font)
+            self.outputTokenLabel.grid(row = 2, column = 0, sticky = "nsew", padx = 5, pady = 5)
         except:
             pass
 
         self.addModelButton = customtkinter.CTkButton(self.root, text="Confirm", command=self.addModelButtonPress, font = self.font)
         self.addModelButton.grid(column = 0, row = 5, sticky = "nsew", padx = 5, pady = 5)
-
+        self.root.focus()
         self.root.wait_window()
 
 class metricEditWindow:

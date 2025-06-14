@@ -179,7 +179,7 @@ class Model:
         self.tokenizer = AutoTokenizer.from_pretrained(self.modelDir)
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(self.modelDir)
+        self.model = AutoModelForCausalLM.from_pretrained(self.modelDir, device_map="cpu")
         self.model.config.pad_token_id = self.tokenizer.eos_token_id
 
         self.name = ""

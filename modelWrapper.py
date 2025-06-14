@@ -145,6 +145,8 @@ class modelWrapper:
     def editButtonPress(self, editArgs = None):
         if editArgs == None:
             editArgs = modelEditWindow.modelEditWindow(self).onClose()
+            if editArgs == [] or editArgs == None:
+                return
         else:
             self.name = editArgs[0]
             self.modelDir = editArgs[1]
