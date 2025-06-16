@@ -1,19 +1,10 @@
 __pycache__/
 *.pyc
 
-elae-env/
-.venv
-
 transcripts/
-gpt2FinetunedLarge/
-elaeProto0/
 elaeOuter/
 elaeInner/
-Elae.tria
-ElaeV2.tria
 AtriaApplication.build/
-
-temp.txt
 
 *.log
 *.tmp
