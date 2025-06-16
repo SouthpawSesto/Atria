@@ -8,4 +8,5 @@ nuitka AtriaApplication.py ^
     --windows-icon-from-ico=Art\AtriaLogo2.ico^
     --verbose ^
     --show-progress ^
+    --include-module=modelEditWindow^
     --enable-plugin=tk-inter
