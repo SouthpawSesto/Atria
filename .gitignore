@@ -5,6 +5,8 @@ transcripts/
 elaeOuter/
 elaeInner/
 AtriaApplication.build/
+AtriaApplication.dist/
+notification.py
 
 *.log
 *.tmp
