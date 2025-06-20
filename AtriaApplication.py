@@ -14,10 +14,6 @@ import modelEditWindow
 import AtriaSaveLoad
 import pluginManager
 
-transformers_base = os.path.join(os.path.dirname(__file__), "transformers", "models")
-if transformers_base not in sys.path:
-    sys.path.append(transformers_base)
-
 class ElaeApplication:
     #Generic write to the chat window that keeps the window disabled for the user
     def write(self, text, justify = "left", sys = False):
