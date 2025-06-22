@@ -7,6 +7,7 @@ elaeInner/
 AtriaApplication.build/
 AtriaApplication.dist/
 notification.py
+.venv/
 
 *.log
 *.tmp
