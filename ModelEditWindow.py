@@ -240,13 +240,11 @@ class yesNoWindow:
         self.root.wait_window()
 
 class preferencesEditWindow:
-    def saveButtonPress(self, * args):
+    def saveButtonPress(self, caller):
         self.returnArgs = []
         self.returnArgs.append(self.name.get())
 
-        self.baseDir = args[0].baseDir
-
-        file = open(self.baseDir + "userConfig.config", "w+")
+        file = open("userConfig.config", "w+")
         file.write("{")
         file.write(f"\n\"username\" : \"{self.name.get()}\"")
         file.write("\n}")
